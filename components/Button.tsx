@@ -1,17 +1,36 @@
-import { View, Pressable, Text } from "react-native";
+import React from 'react';
+import { TouchableOpacity, Text } from 'react-native';
+import { RFValue } from 'react-native-responsive-fontsize';
 
-type Props = {
-  label: string;
-  onPress?: () => void;
-};
+interface ButtonProps {
+  title: string;
+  onPress: () => void;
+  width?: 'full' | 'auto';
+  isLandscape: boolean;
+}
 
-export default function Button({ label, onPress }: Props) {
+const Button: React.FC<ButtonProps> = ({ 
+  title, 
+  onPress, 
+  width = 'full', 
+  isLandscape 
+}) => {
   return (
-    <Pressable
-      className="rounded-md w-320 h-68 mx-20 items-center justify-center p-3 bg-blue-800"
+    <TouchableOpacity
+      className={`bg-purple-200 rounded-full ${
+        width === 'full' ? 'max-w-md w-full' : 'w-auto'
+      } ${isLandscape ? 'py-2' : 'py-3'} m-3`}
       onPress={onPress}
     >
-      <Text className="color-white text-xl">{label}</Text>
-    </Pressable>
+      <Text
+        className={`text-black font-medium w-full text-center ${
+          isLandscape ? 'text-sm' : 'text-base'
+        }`}
+      >
+        {title}
+      </Text>
+    </TouchableOpacity>
   );
-}
+};
+
+export default Button;
