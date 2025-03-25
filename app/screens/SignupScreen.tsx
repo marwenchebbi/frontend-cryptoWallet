@@ -19,10 +19,25 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useOrientation } from '../hooks/shared/useOrientation';
 import { useHandleBack } from '../hooks/shared/useHandleBack';
-import { useSignup } from '../hooks/auth-hooks/SignupHook'; // Adjust path
+import { useSignup } from '../hooks/auth-hooks/SignupHook';
 import { SignupData } from '../models/types';
 import Header from '../../components/Header';
 import Button from '../../components/Button';
+import * as Yup from 'yup';
+
+// Yup validation schema
+const signupSchema = Yup.object().shape({
+  name: Yup.string()
+    .min(2, 'Name must be at least 2 characters')
+    .max(50, 'Name cannot exceed 50 characters')
+    .required('Name is required'),
+  email: Yup.string()
+    .email('Invalid email format')
+    .required('Email is required'),
+  password: Yup.string()
+    .min(6, 'Password must be at least 6 characters')
+    .required('Password is required'),
+});
 
 const SignupScreen: React.FC = () => {
   const router = useRouter();
@@ -32,19 +47,33 @@ const SignupScreen: React.FC = () => {
     email: '',
     password: '',
   });
+  const [errors, setErrors] = useState<Partial<SignupData>>({});
   const isLandscape = useOrientation();
   const handleBack = useHandleBack();
-  const { mutate, isPending, error } = useSignup();
+  const { mutate, isPending, error: mutationError } = useSignup();
 
-  const handleSignup = () => {
-    // Basic validation
-    if (!formData.name || !formData.email || !formData.password) {
-      return; // Error will be handled by React Query or you can set a local state
+  // Validate form data
+  const validateSignup = async (): Promise<boolean> => {
+    try {
+      await signupSchema.validate(formData, { abortEarly: false });
+      setErrors({});
+      return true;
+    } catch (validationError) {
+      if (validationError instanceof Yup.ValidationError) {
+        const errorMessages: Partial<SignupData> = {};
+        validationError.inner.forEach((err) => {
+          if (err.path) {
+            errorMessages[err.path as keyof SignupData] = err.message;
+          }
+        });
+        setErrors(errorMessages);
+      }
+      return false;
     }
-    if (!formData.email.includes('@')) {
-      return;
-    }
+  };
 
+  // Submit signup request
+  const submitSignup = () => {
     mutate(formData, {
       onSuccess: (success) => {
         if (success) {
@@ -52,13 +81,23 @@ const SignupScreen: React.FC = () => {
         }
       },
       onError: (err) => {
-        console.log('Signup error:', err.message); // Optional debug
+        console.log('Signup error:', err.message);
       },
     });
   };
 
+  const handleSignup = async () => {
+    const isValid = await validateSignup();
+    if (isValid) {
+      submitSignup();
+    }
+  };
+
   const handleInputChange = (field: keyof SignupData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
   };
 
   return (
@@ -75,7 +114,6 @@ const SignupScreen: React.FC = () => {
           <Header title="Create Account" onBackPress={handleBack} isLandscape={isLandscape} />
 
           <View className={`flex-1 justify-center items-center ${isLandscape ? 'px-6' : 'px-4'}`}>
-            {/* Username Input */}
             <View className={`max-w-md w-full ${isLandscape ? 'mb-2' : 'mb-4'}`}>
               <LinearGradient
                 colors={['#A855F7', '#F472B6']}
@@ -95,9 +133,9 @@ const SignupScreen: React.FC = () => {
                   onChangeText={(text) => handleInputChange('name', text)}
                 />
               </LinearGradient>
+              {errors.name && <Text className="text-red-500 text-xs mt-1">{errors.name}</Text>}
             </View>
 
-            {/* Email Input */}
             <View className={`max-w-md w-full ${isLandscape ? 'mb-2' : 'mb-4'}`}>
               <LinearGradient
                 colors={['#A855F7', '#F472B6']}
@@ -119,9 +157,9 @@ const SignupScreen: React.FC = () => {
                   autoCapitalize="none"
                 />
               </LinearGradient>
+              {errors.email && <Text className="text-red-500 text-xs mt-1">{errors.email}</Text>}
             </View>
 
-            {/* Password Input */}
             <View className="max-w-md w-full relative">
               <LinearGradient
                 colors={['#A855F7', '#F472B6']}
@@ -152,11 +190,13 @@ const SignupScreen: React.FC = () => {
                   color="#9CA3AF"
                 />
               </TouchableOpacity>
+              {errors.password && (
+                <Text className="text-red-500 text-xs mt-1">{errors.password}</Text>
+              )}
             </View>
 
-            {/* Error Message */}
-            {error && (
-              <Text className="text-red-500 mt-2 text-sm">{error.message}</Text>
+            {mutationError && (
+              <Text className="text-red-500 mt-2 text-sm">{mutationError.message}</Text>
             )}
           </View>
 

@@ -1,6 +1,6 @@
 // hooks/useLogin.ts
 import { useMutation } from '@tanstack/react-query';
-import { Platform } from 'react-native';
+
 import { LoginData, LoginResponse, ErrorResponse } from '../../models/types';
 
 const loginUser = async (data: LoginData): Promise<LoginResponse> => {

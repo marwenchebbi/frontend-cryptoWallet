@@ -22,6 +22,7 @@ import { useLogin } from '../hooks/auth-hooks/LoginHooks'; // Adjust path
 import { LoginData } from '../models/types';
 import Header from '@/components/Header';
 import Button from '@/components/Button';
+import * as SecureStore from 'expo-secure-store'
 
 const LoginScreen: React.FC = () => {
   const router = useRouter();
@@ -35,19 +36,17 @@ const LoginScreen: React.FC = () => {
   const { mutate, isPending, error } = useLogin();
 
   const handleLogin = () => {
-    // Basic validation
-    if (!formData.email || !formData.password) {
-      return; // Error will be handled by React Query
-    }
-    if (!formData.email.includes('@')) {
-      return;
-    }
-
     mutate(formData, {
-      onSuccess: (data: any) => {
+      onSuccess: async (data: any) => {
         // Handle successful login (e.g., store tokens, navigate)
+        // Store tokens securely using SecureStore
+        await SecureStore.setItemAsync('accessToken', data.accessToken);
+        await SecureStore.setItemAsync('refreshToken', data.refreshToken);
+        await SecureStore.setItemAsync('userId', data.userId.toString());
+        
+        console.log('Login success, tokens stored securely');
         console.log('Login success:', data); // Optional: Log tokens
-        // You might want to store tokens here (e.g., AsyncStorage)
+        
         router.push('/'); // Adjust to your home route
       },
       onError: (err:any) => {
