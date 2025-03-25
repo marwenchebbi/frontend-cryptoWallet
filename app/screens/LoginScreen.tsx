@@ -43,11 +43,11 @@ const LoginScreen: React.FC = () => {
         await SecureStore.setItemAsync('accessToken', data.accessToken);
         await SecureStore.setItemAsync('refreshToken', data.refreshToken);
         await SecureStore.setItemAsync('userId', data.userId.toString());
-        
+        //testing 
         console.log('Login success, tokens stored securely');
-        console.log('Login success:', data); // Optional: Log tokens
+        console.log('Login success:', data); 
         
-        router.push('/'); // Adjust to your home route
+        router.push('/');// i need to redirect the user to the home page
       },
       onError: (err:any) => {
         console.log('Login error:', err.message); // Optional debug
