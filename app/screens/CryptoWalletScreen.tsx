@@ -64,7 +64,7 @@ const CryptoWalletScreen = () => {
             className={`bg-purple-200 rounded-full mr-4 ${
               isLandscape ? 'py-2 px-4' : 'py-3 px-6'
             }`}
-            onPress={() => router.push('/screens/SignupScreen')}
+            onPress={() => router.push('/(tabs)/Home')}
           >
             <Text
               className={`text-black font-medium ${

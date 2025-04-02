@@ -23,21 +23,11 @@ import { useSignup } from '../hooks/auth-hooks/SignupHook';
 import { SignupData } from '../models/types';
 import Header from '../../components/Header';
 import Button from '../../components/Button';
-import * as Yup from 'yup';
+import { signupSchema } from '../validators/auth.validator';
+import { validateForm } from '../validators/helpers';
 
 // Yup validation schema
-const signupSchema = Yup.object().shape({
-  name: Yup.string()
-    .min(2, 'Name must be at least 2 characters')
-    .max(50, 'Name cannot exceed 50 characters')
-    .required('Name is required'),
-  email: Yup.string()
-    .email('Invalid email format')
-    .required('Email is required'),
-  password: Yup.string()
-    .min(6, 'Password must be at least 6 characters')
-    .required('Password is required'),
-});
+
 
 const SignupScreen: React.FC = () => {
   const router = useRouter();
@@ -52,25 +42,6 @@ const SignupScreen: React.FC = () => {
   const handleBack = useHandleBack();
   const { mutate, isPending, error: mutationError } = useSignup();
 
-  // Validate form data
-  const validateSignup = async (): Promise<boolean> => {
-    try {
-      await signupSchema.validate(formData, { abortEarly: false });
-      setErrors({});
-      return true;
-    } catch (validationError) {
-      if (validationError instanceof Yup.ValidationError) {
-        const errorMessages: Partial<SignupData> = {};
-        validationError.inner.forEach((err) => {
-          if (err.path) {
-            errorMessages[err.path as keyof SignupData] = err.message;
-          }
-        });
-        setErrors(errorMessages);
-      }
-      return false;
-    }
-  };
 
   // Submit signup request
   const submitSignup = () => {
@@ -87,9 +58,11 @@ const SignupScreen: React.FC = () => {
   };
 
   const handleSignup = async () => {
-    const isValid = await validateSignup();
-    if (isValid) {
+    const { errors , success } = await validateForm(formData,signupSchema);
+    if (success) {
       submitSignup();
+    }else{
+      setErrors(errors);
     }
   };
 

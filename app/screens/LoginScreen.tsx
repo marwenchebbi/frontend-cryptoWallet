@@ -23,6 +23,8 @@ import { LoginData } from '../models/types';
 import Header from '@/components/Header';
 import Button from '@/components/Button';
 import * as SecureStore from 'expo-secure-store'
+import { validateForm } from '../validators/helpers';
+import { loginSchema } from '../validators/auth.validator';
 
 const LoginScreen: React.FC = () => {
   const router = useRouter();
@@ -31,11 +33,12 @@ const LoginScreen: React.FC = () => {
     email: '',
     password: '',
   });
+  const [errors, setErrors] = useState<Partial<LoginData>>({});
   const isLandscape = useOrientation();
   const handleBack = useHandleBack();
   const { mutate, isPending, error } = useLogin();
 
-  const handleLogin = () => {
+  const submitLogin = () => {
     mutate(formData, {
       onSuccess: async (data: any) => {
         // Handle successful login (e.g., store tokens, navigate)
@@ -44,19 +47,32 @@ const LoginScreen: React.FC = () => {
         await SecureStore.setItemAsync('refreshToken', data.refreshToken);
         await SecureStore.setItemAsync('userId', data.userId.toString());
         //testing 
-        console.log('Login success, tokens stored securely');
-        console.log('Login success:', data); 
-        
+        console.log('Login success \n tokens stored securely');
+        const id = await SecureStore.getItem('userId')
+        console.log(`User ID : ${id}`)
         router.push('/');// i need to redirect the user to the home page
       },
-      onError: (err:any) => {
+      onError: (err: any) => {
         console.log('Login error:', err.message); // Optional debug
       },
     });
   };
 
+
+  const handleLogin = async () => {
+    const { errors, success } = await validateForm(formData, loginSchema)
+    if(success){
+      submitLogin()
+    }
+    else{
+      setErrors(errors)
+    }
+  }
+
   const handleInputChange = (field: keyof LoginData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    setErrors({})
+    
   };
 
   return (
@@ -83,9 +99,8 @@ const LoginScreen: React.FC = () => {
                 style={styles.gradient}
               >
                 <TextInput
-                  className={`w-full bg-white text-black ${
-                    isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
-                  }`}
+                  className={`w-full bg-white text-black ${isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
+                    }`}
                   style={styles.input}
                   placeholder="Email"
                   placeholderTextColor="#9CA3AF"
@@ -95,6 +110,7 @@ const LoginScreen: React.FC = () => {
                   autoCapitalize="none"
                 />
               </LinearGradient>
+              {errors.email && <Text className="text-red-500 text-xs mt-1">{errors.email}</Text>}
             </View>
 
             {/* Password Input */}
@@ -107,9 +123,8 @@ const LoginScreen: React.FC = () => {
                 style={styles.gradient}
               >
                 <TextInput
-                  className={`w-full bg-white text-black ${
-                    isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
-                  }`}
+                  className={`w-full bg-white text-black ${isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
+                    }`}
                   style={styles.input}
                   placeholder="Password"
                   placeholderTextColor="#9CA3AF"
@@ -128,6 +143,7 @@ const LoginScreen: React.FC = () => {
                   color="#9CA3AF"
                 />
               </TouchableOpacity>
+              {errors.password && <Text className="text-red-500 text-xs mt-1">{errors.password}</Text>}
             </View>
 
             {/* Error Message */}
