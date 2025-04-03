@@ -37,7 +37,13 @@ export interface ErrorResponse {
 export interface TransferData {
   amount: string;
   senderAddress: string;
-  receiverAddress: string;
+  receiverAddress?: string;
+}
+
+export interface walletInfoRequest {
+    address : string,
+    prxBalance : string,
+    usdtBalance : string
 }
 
 

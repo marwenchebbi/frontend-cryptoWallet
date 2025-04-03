@@ -6,6 +6,9 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 
 const TabsLayout = () => {
+
+    
+
     return (
         <Tabs
             screenOptions={{ headerShown: false, tabBarActiveTintColor: '#e91e63', tabBarInactiveTintColor: '#A855F7', tabBarStyle: { backgroundColor: 'white' }  }}>
