@@ -23,8 +23,21 @@ export interface ErrorDetails {
   code: string;
 }
 
+
+// this will be the response when a backend  error occures 
 export interface ErrorResponse {
   error: boolean;
   errorDetails: ErrorDetails;
   timeStamp: string;
 }
+
+
+
+// Define the type for the transfer data
+export interface TransferData {
+  amount: string;
+  senderAddress: string;
+  receiverAddress: string;
+}
+
+

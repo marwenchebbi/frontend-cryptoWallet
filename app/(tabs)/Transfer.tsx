@@ -19,18 +19,79 @@ import { useOrientation } from '../hooks/shared/useOrientation';
 import { useHandleBack } from '../hooks/shared/useHandleBack';
 import Header from '@/components/Header';
 import Button from '@/components/Button';
+import * as SecureStore from 'expo-secure-store';
+import { validateForm } from '../validators/helpers';
+import { transferSchema } from '../validators/transaction.validator';
+import { useTransferPRX, useTransferUSDT } from '../hooks/transactions-hooks/transfer.hooks';
+import { TransferData } from '../models/types';
+import ConfirmationModal from '../modals/confirmationModal'; 
 
 const TransferScreen: React.FC = () => {
   const router = useRouter();
   const isLandscape = useOrientation();
   const handleBack = useHandleBack();
 
-  const [amount, setAmount] = useState('1000000');
-  const [recipientAddress, setRecipientAddress] = useState('0X5572199002453327679');
-  const [selectedCoin, setSelectedCoin] = useState('Proxym');
+  const [formData, setFormData] = useState<TransferData>({
+    amount: '',
+    senderAddress: '',
+    receiverAddress: '',
+  });
 
-  const handleTransfer = () => {
-    console.log('Transfer initiated:', { amount, recipientAddress, selectedCoin });
+  const [selectedBalance, setSelectedBalance] = useState<'Proxym'|'USDT'>('Proxym');
+  const [selectedCoin, setSelectedCoin] = useState<'PRX'|'USDT'>('PRX');
+  const [errors, setErrors] = useState<Partial<TransferData>>({});
+  const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
+  const { mutate, isPending, error } = selectedCoin === 'PRX' ? useTransferPRX() : useTransferUSDT();
+
+  // Fetch senderAddress from the wallet address
+  const fetchSenderAddress = async () => {
+    const senderAddress = await SecureStore.getItemAsync('walletAddress');
+    if (senderAddress) {
+      setFormData((prev) => ({ ...prev, senderAddress }));
+    } else {
+      setErrors((prev) => ({ ...prev, senderAddress: 'Sender address not found' }));
+    }
+  };
+
+  // this hook wil also fetch the balances and the wallet infos
+  React.useEffect(() => {
+    fetchSenderAddress();
+  }, []);
+
+
+  
+  const handleInputChange = (field: keyof TransferData, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: undefined }));
+  };
+
+  const submitTransfer = () => {
+    mutate(formData, {
+      onSuccess: async (success: boolean) => {
+        if (success) {
+          console.log('Transfer successful');
+          setConfirmModalVisible(false);
+          
+        }
+      },
+      onError: (err: any) => {
+        console.log('Transfer error:', err.message);
+        setConfirmModalVisible(false);
+      },
+    });
+  };
+
+  const handleTransfer = async () => {
+    const { errors, success } = await validateForm(formData, transferSchema);
+    if (success) {
+      if (!formData.senderAddress) {
+        setErrors((prev) => ({ ...prev, senderAddress: 'Sender address is required' }));
+        return;
+      }
+      setConfirmModalVisible(true);
+    } else {
+      setErrors(errors);
+    }
   };
 
   return (
@@ -44,35 +105,23 @@ const TransferScreen: React.FC = () => {
           contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header with back button */}
-          <Header
-            title=""
-            onBackPress={handleBack}
-            isLandscape={isLandscape}
-          />
-
-          {/* Available Balance Section */}
+          <Header title="" onBackPress={handleBack} isLandscape={isLandscape} />
+          
           <View className="items-center mt-6">
             <Text className="text-gray-500 text-sm">Available balance</Text>
             <Text className={`text-black font-bold ${isLandscape ? 'text-3xl' : 'text-4xl'}`}>
               6,500 PRX
             </Text>
-
-            {/* Coin Selection Dropdown (Simplified) */}
             <TouchableOpacity
               className="flex-row items-center bg-gray-100 rounded-full px-4 py-2 mt-4"
-              onPress={() => {
-                console.log('Select coin');
-                setSelectedCoin(selectedCoin === 'Proxym' ? 'USDT' : 'Proxym');
-              }}
+              onPress={() => setSelectedBalance(selectedBalance == 'Proxym' ? 'USDT' : 'Proxym')}
             >
               <View className="w-2 h-2 bg-black rounded-full mr-2" />
-              <Text className="text-black text-base">{selectedCoin}</Text>
+              <Text className="text-black text-base">{selectedBalance}</Text>
               <Ionicons name="swap-horizontal" size={RFValue(16)} color="#000" style={{ marginLeft: 8 }} />
             </TouchableOpacity>
           </View>
 
-          {/* Transfer Form Section with Gradient Border */}
           <View className="flex-1 items-center justify-center my-8">
             <LinearGradient
               colors={['#A855F7', '#F472B6']}
@@ -82,15 +131,18 @@ const TransferScreen: React.FC = () => {
               style={styles.gradient}
             >
               <View className="bg-white rounded-3xl p-6" style={styles.transferContainer}>
-                <Text className={`text-black text-center font-semibold ${isLandscape ? 'text-lg' : 'text-xl'} mb-5`}>
+                <Text
+                  className={`text-black text-center font-semibold ${isLandscape ? 'text-lg' : 'text-xl'} mb-5`}
+                >
                   Transfer
                 </Text>
-
-                {/* Amount Input with PRX Label */}
+                
                 <View className="flex-row items-center mb-4">
+                <TouchableOpacity onPress={() => setSelectedCoin(selectedCoin == 'PRX' ? 'USDT' : 'PRX')}>
                   <View className="bg-black rounded-full px-4 py-2">
-                    <Text className="text-white text-base">PRX</Text>
+                    <Text className="text-white text-base">{selectedCoin}</Text>
                   </View>
+                  </TouchableOpacity>
                   <LinearGradient
                     colors={['#A855F7', '#F472B6']}
                     start={{ x: 0, y: 0 }}
@@ -103,14 +155,14 @@ const TransferScreen: React.FC = () => {
                       style={styles.input}
                       placeholder="Amount"
                       placeholderTextColor="#9CA3AF"
-                      value={amount}
-                      onChangeText={setAmount}
+                      value={formData.amount}
+                      onChangeText={(text) => handleInputChange('amount', text)}
                       keyboardType="numeric"
                     />
                   </LinearGradient>
                 </View>
+                {errors.amount && <Text className="text-red-500 text-xs mb-4">{errors.amount}</Text>}
 
-                {/* Recipient Address Input */}
                 <View className="mb-6">
                   <Text className="text-gray-500 text-sm mb-2">Recipient address</Text>
                   <LinearGradient
@@ -125,14 +177,21 @@ const TransferScreen: React.FC = () => {
                       style={styles.input}
                       placeholder="Recipient address"
                       placeholderTextColor="#9CA3AF"
-                      value={recipientAddress}
-                      onChangeText={setRecipientAddress}
+                      value={formData.receiverAddress}
+                      onChangeText={(text) => handleInputChange('receiverAddress', text)}
                       autoCapitalize="none"
                     />
                   </LinearGradient>
+                  {errors.receiverAddress && (
+                    <Text className="text-red-500 text-xs mt-1">{errors.receiverAddress}</Text>
+                  )}
                 </View>
 
-                {/* Transfer Button */}
+                {errors.senderAddress && (
+                  <Text className="text-red-500 text-xs mb-4">{errors.senderAddress}</Text>
+                )}
+                {error && <Text className="text-red-500 text-xs mb-4">{error.message}</Text>}
+
                 <Button
                   title="Transfer"
                   onPress={handleTransfer}
@@ -144,6 +203,18 @@ const TransferScreen: React.FC = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+     
+      <ConfirmationModal
+        visible={isConfirmModalVisible}
+        title="Confirm Transfer"
+        message={`Are you sure you want to transfer ${formData.amount} ${selectedCoin} to ${formData.receiverAddress}?`}
+        onConfirm={submitTransfer}
+        onCancel={() => setConfirmModalVisible(false)}
+        isPending={isPending}
+        isLandscape={isLandscape}
+      />
+
       <StatusBar style="light" />
     </SafeAreaView>
   );

@@ -25,9 +25,9 @@ const TabsLayout = () => {
                     <MaterialIcons name="currency-exchange" size={24} color="#e91e63" />
                 )
             }} />
-            <Tabs.Screen name='Transactions' options={{
+            <Tabs.Screen name='Exchange' options={{
 
-                tabBarLabel: 'Transactions',
+                tabBarLabel: 'Exchange',
                 tabBarIcon: ({ color }) => (
 
                     <FontAwesome6 name="clipboard-list" size={24} color="#e91e63" />
