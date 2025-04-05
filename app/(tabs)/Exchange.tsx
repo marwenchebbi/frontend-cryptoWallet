@@ -14,41 +14,58 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+
+// Custom hooks
 import { useOrientation } from '../hooks/shared/useOrientation';
 import { useHandleBack } from '../hooks/shared/useHandleBack';
+
+// UI Components
 import Header from '@/components/Header';
 import Button from '@/components/Button';
+import BalanceDetails from '@/components/BalancesDetails';
+
+// Utilities and validation
 import * as SecureStore from 'expo-secure-store';
 import { validateForm } from '../validators/helpers';
 import { transferSchema } from '../validators/transaction.validator';
+
+// Hooks for handling transactions and wallet info
 import { useBuyPRX, useSellPRX } from '../hooks/transactions-hooks/exchange.hooks';
+import { useGetWalletInfo } from '../hooks/wallet-info-hooks/balances.hooks';
+import { useGetPrice } from '../hooks/transactions-hooks/price.hooks';
+
+// Types and modals
 import { TransferData } from '../models/types';
 import ConfirmationModal from '../modals/confirmationModal';
-import { useGetWalletInfo } from '../hooks/wallet-info-hooks/balances.hooks';
-import BalanceDetails from '@/components/BalancesDetails';
 
 const Exchange: React.FC = () => {
-
   const isLandscape = useOrientation();
   const handleBack = useHandleBack();
 
+  // Form state
   const [formData, setFormData] = useState<TransferData>({
     amount: '',
     senderAddress: '',
     receiverAddress: '',
+    inputCurrency: 'USDT',
   });
 
+  // UI state
   const [selectedBalance, setSelectedBalance] = useState<'Proxym' | 'USDT'>('Proxym');
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
   const [errors, setErrors] = useState<Partial<TransferData>>({});
   const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
 
+  // Select mutation based on trade type
   const { mutate, isPending, error } = tradeType === 'buy' ? useBuyPRX() : useSellPRX();
-  const { data: walletInfo, isLoading: isWalletLoading, error: walletError, refetch } = useGetWalletInfo(
+
+  // Fetch wallet and price data
+  const { data: walletInfo, isLoading: isWalletLoading, error: walletError, refetch: walletRefetch } = useGetWalletInfo(
     formData.senderAddress
   );
+  const { data: priceInfo, isLoading: isPriceLoading, error: priceError, refetch: priceRefetch } = useGetPrice();
 
-  // Fetch senderAddress from SecureStore
+  // Fetch wallet address from secure storage
   const fetchSenderAddress = async () => {
     const senderAddress = await SecureStore.getItemAsync('walletAddress');
     if (senderAddress) {
@@ -62,18 +79,20 @@ const Exchange: React.FC = () => {
     fetchSenderAddress();
   }, []);
 
+  // Handle input field changes
   const handleInputChange = (field: keyof TransferData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
+  // Submit the trade after confirming in the modal
   const submitTrade = () => {
     mutate(formData, {
       onSuccess: async (success: boolean) => {
         if (success) {
           setConfirmModalVisible(false);
-          setFormData({ amount: '', senderAddress: formData.senderAddress, receiverAddress: '' });
-
+          // Reset the form, preserve senderAddress
+          setFormData({ amount: '', senderAddress: formData.senderAddress, receiverAddress: '', inputCurrency: 'USDT' });
         }
       },
       onError: (err: any) => {
@@ -83,6 +102,13 @@ const Exchange: React.FC = () => {
     });
   };
 
+  // Refetch wallet and price information (pull-to-refresh)
+  const updateWAlletData = () => {
+    priceRefetch();
+    walletRefetch();
+  };
+
+  // Handle validation and show confirmation modal
   const handleTrade = async () => {
     const { errors, success } = await validateForm(formData, transferSchema);
     if (success) {
@@ -100,6 +126,7 @@ const Exchange: React.FC = () => {
     }
   };
 
+  // Show loading screen while fetching wallet data
   if (isWalletLoading) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-white">
@@ -108,6 +135,7 @@ const Exchange: React.FC = () => {
     );
   }
 
+  // Show error message if wallet fetch fails
   if (walletError) {
     return (
       <SafeAreaView className="flex-1 bg-white">
@@ -115,6 +143,8 @@ const Exchange: React.FC = () => {
       </SafeAreaView>
     );
   }
+
+  const outputCurrency = tradeType === 'buy' ? 'PRX' : 'USDT';
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -127,26 +157,31 @@ const Exchange: React.FC = () => {
           contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
           keyboardShouldPersistTaps="handled"
           refreshControl={
-            <RefreshControl refreshing={isWalletLoading} onRefresh={refetch} />
+            <RefreshControl refreshing={isWalletLoading || isPriceLoading} onRefresh={updateWAlletData} />
           }
         >
+          {/* Top navigation/header */}
           <Header title="" onBackPress={handleBack} isLandscape={isLandscape} />
 
+          {/* Balance info */}
           <BalanceDetails
             walletInfo={walletInfo}
             selectedBalance={selectedBalance}
             onToggleBalance={() => setSelectedBalance(selectedBalance === 'Proxym' ? 'USDT' : 'Proxym')}
             isLandscape={isLandscape}
+            price={priceInfo ?? 0}
           />
 
-            {/* Refresh text guide */}
-            <View className="mt-4 p-2 bg-white rounded">
-              {!isWalletLoading && (
-                <Text className="text-pink-700 text-center">
-                  Swipe down to refresh your balance details
-                </Text>
-              )}
-            </View>
+          {/* Swipe to refresh note */}
+          <View className="mt-4 p-2 bg-white rounded">
+            {!isWalletLoading && (
+              <Text className="text-pink-700 text-sm text-center">
+                Swipe down to refresh your balance details
+              </Text>
+            )}
+          </View>
+
+          {/* Main exchange card */}
           <View className="flex-1 items-center justify-center my-8">
             <LinearGradient
               colors={['#A855F7', '#F472B6']}
@@ -156,38 +191,57 @@ const Exchange: React.FC = () => {
               style={styles.gradient}
             >
               <View className="bg-white rounded-3xl p-6" style={styles.exchangeContainer}>
-                <Text
-                  className={`text-black text-center font-semibold ${isLandscape ? 'text-lg' : 'text-xl'} mb-5`}
-                >
-                  Exchange
-                </Text>
 
+                {/* Trade Type Toggle */}
                 <View className="flex-row bg-gray-200 rounded-full p-1 mb-6">
                   <TouchableOpacity
                     className={`flex-1 py-2 rounded-full ${tradeType === 'buy' ? 'bg-black' : ''}`}
                     onPress={() => setTradeType('buy')}
                   >
-                    <Text
-                      className={`text-center font-semibold ${tradeType === 'buy' ? 'text-white' : 'text-black'}`}
-                    >
-                      Buy
+                    <Text className={`text-center font-semibold ${tradeType === 'buy' ? 'text-white' : 'text-black'}`}>
+                      Buy PRX
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     className={`flex-1 py-2 rounded-full ${tradeType === 'sell' ? 'bg-black' : ''}`}
                     onPress={() => setTradeType('sell')}
                   >
-                    <Text
-                      className={`text-center font-semibold ${tradeType === 'sell' ? 'text-white' : 'text-black'}`}
-                    >
-                      Sell
+                    <Text className={`text-center font-semibold ${tradeType === 'sell' ? 'text-white' : 'text-black'}`}>
+                      Sell PRX
                     </Text>
                   </TouchableOpacity>
                 </View>
 
+                {/* Input Currency Toggle */}
+                <View className="p-2 bg-white rounded">
+                  {!isWalletLoading && (
+                    <Text className="text-gray-500 text-center">Choose the Currency to trade with</Text>
+                  )}
+                </View>
+
+                <View className="flex-row bg-gray-200 rounded-full p-1 mb-6">
+                  <TouchableOpacity
+                    className={`flex-1 py-2 rounded-full ${formData.inputCurrency === 'USDT' ? 'bg-black' : ''}`}
+                    onPress={() => handleInputChange('inputCurrency', 'USDT')}
+                  >
+                    <Text className={`text-center font-semibold ${formData.inputCurrency === 'USDT' ? 'text-white' : 'text-black'}`}>
+                      USDT
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className={`flex-1 py-2 rounded-full ${formData.inputCurrency === 'PRX' ? 'bg-black' : ''}`}
+                    onPress={() => handleInputChange('inputCurrency', 'PRX')}
+                  >
+                    <Text className={`text-center font-semibold ${formData.inputCurrency === 'PRX' ? 'text-white' : 'text-black'}`}>
+                      PRX
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Amount input field */}
                 <View className="flex-row items-center mb-4">
                   <View className="bg-black rounded-full px-4 py-2">
-                    <Text className="text-white text-base">{tradeType === 'buy' ? 'USDT' : 'PRX'}</Text>
+                    <Text className="text-white text-base">{formData.inputCurrency}</Text>
                   </View>
                   <LinearGradient
                     colors={['#A855F7', '#F472B6']}
@@ -207,30 +261,26 @@ const Exchange: React.FC = () => {
                     />
                   </LinearGradient>
                 </View>
+
+                {/* Validation errors */}
                 {errors.amount && <Text className="text-red-500 text-xs mb-4">{errors.amount}</Text>}
-
-                {errors.senderAddress && (
-                  <Text className="text-red-500 text-xs mb-4">{errors.senderAddress}</Text>
-                )}
-
+                {errors.inputCurrency && <Text className="text-red-500 text-xs mb-4">{errors.inputCurrency}</Text>}
+                {errors.senderAddress && <Text className="text-red-500 text-xs mb-4">{errors.senderAddress}</Text>}
                 {error && <Text className="text-red-500 text-xs mb-4">{error.message}</Text>}
 
-                <Button
-                  title="Exchange"
-                  onPress={handleTrade}
-                  isLandscape={isLandscape}
-                  width="full"
-                />
+                {/* Action Button */}
+                <Button title="Exchange" onPress={handleTrade} isLandscape={isLandscape} width="full" />
               </View>
             </LinearGradient>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
+      {/* Confirmation Modal */}
       <ConfirmationModal
         visible={isConfirmModalVisible}
         title="Confirm Exchange"
-        message={`Are you sure you want to ${tradeType} ${formData.amount} ${tradeType === 'buy' ? 'USDT for PRX' : 'PRX for USDT'}?`}
+        message={`Are you sure you want to ${tradeType === 'buy' ? 'buy' : 'sell'} ${formData.amount} ${outputCurrency} using ${formData.inputCurrency}?`}
         onConfirm={submitTrade}
         onCancel={() => setConfirmModalVisible(false)}
         isPending={isPending}

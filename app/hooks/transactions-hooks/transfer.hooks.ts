@@ -4,7 +4,7 @@ import {TransferData} from '../../models/types'
 
 // API call to transfer PRX tokens
 const transferTokens = async (data: TransferData): Promise<boolean> => {
-  const url = 'http://192.168.11.38:3000/transaction/transfer/prx' 
+  const url = 'http://192.168.1.14:3000/transaction/transfer/prx' 
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -24,7 +24,7 @@ const transferTokens = async (data: TransferData): Promise<boolean> => {
 
 // API call to transfer USDT tokens
 const transferUSDT = async (data: TransferData): Promise<boolean> => {
-    const url = 'http://192.168.11.38:3000/transaction/transfer/usdt' 
+    const url = 'http://192.168.1.14:3000/transaction/transfer/usdt' 
     const res = await fetch(url, {
       method: 'POST',
       headers: {

@@ -38,6 +38,7 @@ export interface TransferData {
   amount: string;
   senderAddress: string;
   receiverAddress?: string;
+  inputCurrency?: 'USDT' | 'PRX'; // New field is optional for the transfer operations
 }
 
 export interface walletInfoRequest {

@@ -13,7 +13,7 @@ interface WalletInfoRequest {
 }
 
 const getWalletInfo = async (address: string): Promise<WalletInfoDTO> => {
-  const url = `http://192.168.11.38:3000/wallet/info?address=${encodeURIComponent(address)}`;
+  const url = `http://192.168.1.14:3000/wallet/info?address=${encodeURIComponent(address)}`;
   const res = await fetch(url, {
     method: 'GET',
     headers: {
@@ -31,7 +31,6 @@ const getWalletInfo = async (address: string): Promise<WalletInfoDTO> => {
 };
 
 export const useGetWalletInfo = (address: string) => {
-    const queryClient = useQueryClient();
   
     return useQuery({
       queryKey: ['walletInfo', address],

@@ -8,6 +8,7 @@ interface BalanceDetailsProps {
   selectedBalance: 'Proxym' | 'USDT';
   onToggleBalance: () => void;
   isLandscape: boolean;
+  price  : number
 }
 
 const BalanceDetails: React.FC<BalanceDetailsProps> = ({
@@ -15,7 +16,9 @@ const BalanceDetails: React.FC<BalanceDetailsProps> = ({
   selectedBalance,
   onToggleBalance,
   isLandscape,
+  price
 }) => {
+    
   return (
     <View className="items-center mt-6">
       <Text className="text-gray-500 text-sm mb-2">Available balance</Text>
@@ -23,6 +26,12 @@ const BalanceDetails: React.FC<BalanceDetailsProps> = ({
         {selectedBalance === 'Proxym'
           ? `${walletInfo?.prxBalance.toFixed(2) || '0'} PRX`
           : `${walletInfo?.usdtBalance.toFixed(2) || '0'} USDT`}
+      </Text>
+
+      <Text className={`text-gray-500 ${isLandscape ? 'text-m' : 'text-l'}`}>
+        {selectedBalance === 'Proxym'
+          ? `≈ ${((walletInfo?.prxBalance ?? 0) * price).toFixed(2)} USDT`
+          : `≈ ${((walletInfo?.usdtBalance ?? 0) * price) .toFixed(2) || '0'} PRX`}
       </Text>
       <TouchableOpacity
         className="flex-row items-center bg-gray-100 rounded-full px-4 py-2 mt-4"
@@ -32,6 +41,8 @@ const BalanceDetails: React.FC<BalanceDetailsProps> = ({
         <Text className="text-black text-base">{selectedBalance}</Text>
         <Ionicons name="swap-horizontal" size={RFValue(16)} color="#000" style={{ marginLeft: 8 }} />
       </TouchableOpacity>
+
+
     </View>
   );
 };

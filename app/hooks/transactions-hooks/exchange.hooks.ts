@@ -1,9 +1,9 @@
 import { useMutation } from '@tanstack/react-query';
 import { TransferData } from '../../models/types';
 
-// API call to buy PRX with USDT
+// API call to buy PRX
 const buyPRX = async (data: TransferData): Promise<boolean> => {
-  const url = 'http://192.168.11.38:3000/transaction/buy'; // Adjust endpoint as needed
+  const url = 'http://192.168.1.14:3000/transaction/buy'; // Adjust endpoint as needed
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -21,9 +21,9 @@ const buyPRX = async (data: TransferData): Promise<boolean> => {
   return false;
 };
 
-// API call to sell PRX for USDT
+// API call to sell PRX
 const sellPRX = async (data: TransferData): Promise<boolean> => {
-  const url = 'http://192.168.11.38:3000/transaction/sell'; // Adjust endpoint as needed
+  const url = 'http://192.168.1.14:3000/transaction/sell'; // Adjust endpoint as needed
   const res = await fetch(url, {
     method: 'POST',
     headers: {

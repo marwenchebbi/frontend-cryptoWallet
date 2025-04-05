@@ -1,7 +1,7 @@
-import { useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
-const getPrice = async (): Promise<boolean> => {
-  const url = 'http://192.168.11.38:3000/transaction/price' 
+const getPrice = async (): Promise<number> => {
+  const url = 'http://192.168.1.14:3000/transaction/price' 
   const res = await fetch(url, {
     method: 'GET',
     headers: {
@@ -10,18 +10,21 @@ const getPrice = async (): Promise<boolean> => {
   });
 
   if (res.status === 200 || res.status === 201) {
-    return true;
+    return res.json();
   } else if (!res.ok) {
     const errorData = await res.json();
     throw new Error(errorData.errorDetails?.message || 'Transfer failed');
   }
-  return false;
+  return res.json();
 };
 
 
 export const useGetPrice = () =>{
-    return useMutation({
-        mutationFn : getPrice
+    return useQuery({
+        queryKey : ['getPrice' ] ,
+        queryFn : ()=> getPrice(),
+        refetchOnWindowFocus: true,
+
     })
 
 }

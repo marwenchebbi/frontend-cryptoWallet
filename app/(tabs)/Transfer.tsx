@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,43 +14,76 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+
+// Custom hooks
 import { useOrientation } from '../hooks/shared/useOrientation';
 import { useHandleBack } from '../hooks/shared/useHandleBack';
+
+// Components
 import Header from '@/components/Header';
 import Button from '@/components/Button';
+import ConfirmationModal from '../modals/confirmationModal';
+import BalanceDetails from '@/components/BalancesDetails';
+
+// Libraries & utils
 import * as SecureStore from 'expo-secure-store';
 import { validateForm } from '../validators/helpers';
 import { transferSchema } from '../validators/transaction.validator';
+
+// API hooks
 import { useTransferPRX, useTransferUSDT } from '../hooks/transactions-hooks/transfer.hooks';
-import { TransferData } from '../models/types';
-import ConfirmationModal from '../modals/confirmationModal';
 import { useGetWalletInfo } from '../hooks/wallet-info-hooks/balances.hooks';
-import BalanceDetails from '@/components/BalancesDetails';
+import { useGetPrice } from '../hooks/transactions-hooks/price.hooks';
+
+// Types
+import { TransferData } from '../models/types';
 
 const TransferScreen: React.FC = () => {
-  const router = useRouter();
-  const isLandscape = useOrientation();
-  const handleBack = useHandleBack();
+  const router = useRouter(); // For navigation
+  const isLandscape = useOrientation(); // Detect screen orientation
+  const handleBack = useHandleBack(); // Back button behavior
 
+  // Form state
   const [formData, setFormData] = useState<TransferData>({
     amount: '',
     senderAddress: '',
     receiverAddress: '',
   });
 
+  // State for toggling balance/coin display
   const [selectedBalance, setSelectedBalance] = useState<'Proxym' | 'USDT'>('Proxym');
   const [selectedCoin, setSelectedCoin] = useState<'PRX' | 'USDT'>('PRX');
+
+  // Error handling
   const [errors, setErrors] = useState<Partial<TransferData>>({});
+
+  // Modal state
   const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
 
-  const { mutate: transferMutate, isPending: transferPending, error: transferError } =
-    selectedCoin === 'PRX' ? useTransferPRX() : useTransferUSDT();
+  // Dynamic hook depending on coin type
+  const {
+    mutate: transferMutate,
+    isPending: transferPending,
+    error: transferError,
+  } = selectedCoin === 'PRX' ? useTransferPRX() : useTransferUSDT();
 
-  const { data: walletInfo, isLoading: isWalletLoading, error: walletError, refetch } = useGetWalletInfo(
-    formData.senderAddress
-  );
+  // Fetch wallet info using sender address
+  const {
+    data: walletInfo,
+    isLoading: isWalletLoading,
+    error: walletError,
+    refetch: walletRefetch,
+  } = useGetWalletInfo(formData.senderAddress);
 
-  // Fetch senderAddress from SecureStore
+  // Fetch current prices (PRX to USDT etc.)
+  const {
+    data: priceInfo,
+    isLoading: isPriceLoading,
+    error: priceError,
+    refetch: priceRefetch,
+  } = useGetPrice();
+
+  // Fetch sender address securely from SecureStore
   const fetchSenderAddress = async () => {
     const senderAddress = await SecureStore.getItemAsync('walletAddress');
     if (senderAddress) {
@@ -60,22 +93,27 @@ const TransferScreen: React.FC = () => {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchSenderAddress();
   }, []);
 
+  // Handle input updates for form
   const handleInputChange = (field: keyof TransferData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
+  // Called when user confirms the transfer
   const submitTransfer = () => {
     transferMutate(formData, {
       onSuccess: async (success: boolean) => {
         if (success) {
           setConfirmModalVisible(false);
-          setFormData({ amount: '', senderAddress: formData.senderAddress, receiverAddress: '' });
-
+          setFormData({
+            amount: '',
+            senderAddress: formData.senderAddress,
+            receiverAddress: '',
+          });
         }
       },
       onError: (err: any) => {
@@ -85,8 +123,10 @@ const TransferScreen: React.FC = () => {
     });
   };
 
+  // Called when user clicks "Transfer"
   const handleTransfer = async () => {
     const { errors, success } = await validateForm(formData, transferSchema);
+
     if (success) {
       if (!formData.senderAddress) {
         setErrors((prev) => ({ ...prev, senderAddress: 'Sender address is required' }));
@@ -96,12 +136,15 @@ const TransferScreen: React.FC = () => {
         setErrors((prev) => ({ ...prev, amount: 'Please enter a valid amount' }));
         return;
       }
+
+      // Show confirmation modal before proceeding
       setConfirmModalVisible(true);
     } else {
       setErrors(errors);
     }
   };
 
+  // Show loading screen while wallet info is loading
   if (isWalletLoading) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-white">
@@ -110,6 +153,7 @@ const TransferScreen: React.FC = () => {
     );
   }
 
+  // Show error message if wallet fetch fails
   if (walletError) {
     return (
       <SafeAreaView className="flex-1 bg-white">
@@ -117,6 +161,13 @@ const TransferScreen: React.FC = () => {
       </SafeAreaView>
     );
   }
+
+    // Refetch wallet and price information (pull-to-refresh)
+    const updateWAlletData = () => {
+      priceRefetch();
+      walletRefetch();
+    };
+  
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -129,27 +180,35 @@ const TransferScreen: React.FC = () => {
           contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
           keyboardShouldPersistTaps="handled"
           refreshControl={
-            <RefreshControl refreshing={isWalletLoading} onRefresh={refetch} />
+            <RefreshControl
+              refreshing={isWalletLoading || isPriceLoading}
+              onRefresh={updateWAlletData}
+            />
           }
         >
           <Header title="" onBackPress={handleBack} isLandscape={isLandscape} />
 
+          {/* Display balance info */}
           <BalanceDetails
             walletInfo={walletInfo}
             selectedBalance={selectedBalance}
-            onToggleBalance={() => setSelectedBalance(selectedBalance === 'Proxym' ? 'USDT' : 'Proxym')}
+            onToggleBalance={() =>
+              setSelectedBalance(selectedBalance === 'Proxym' ? 'USDT' : 'Proxym')
+            }
             isLandscape={isLandscape}
+            price={priceInfo ?? 0}
           />
 
-          {/* Refresh text guide */}
-          <View className="mt-4 p-2 bg-white rounded">
-            {!isWalletLoading && (
+          {/* Refresh tip */}
+          {!isWalletLoading && (
+            <View className="mt-4 p-2 bg-white rounded">
               <Text className="text-pink-700 text-center">
                 Swipe down to refresh your balance details
               </Text>
-            )}
-          </View>
+            </View>
+          )}
 
+          {/* Transfer form container */}
           <View className="flex-1 items-center justify-center my-8">
             <LinearGradient
               colors={['#A855F7', '#F472B6']}
@@ -160,11 +219,14 @@ const TransferScreen: React.FC = () => {
             >
               <View className="bg-white rounded-3xl p-6" style={styles.transferContainer}>
                 <Text
-                  className={`text-black text-center font-semibold ${isLandscape ? 'text-lg' : 'text-xl'} mb-5`}
+                  className={`text-black text-center font-semibold ${
+                    isLandscape ? 'text-lg' : 'text-xl'
+                  } mb-5`}
                 >
                   Transfer
                 </Text>
 
+                {/* Toggle between PRX / USDT */}
                 <View className="flex-row items-center mb-4">
                   <TouchableOpacity
                     onPress={() => setSelectedCoin(selectedCoin === 'PRX' ? 'USDT' : 'PRX')}
@@ -173,6 +235,8 @@ const TransferScreen: React.FC = () => {
                       <Text className="text-white text-base">{selectedCoin}</Text>
                     </View>
                   </TouchableOpacity>
+
+                  {/* Amount input */}
                   <LinearGradient
                     colors={['#A855F7', '#F472B6']}
                     start={{ x: 0, y: 0 }}
@@ -181,7 +245,9 @@ const TransferScreen: React.FC = () => {
                     style={styles.gradient}
                   >
                     <TextInput
-                      className={`w-full bg-white text-black ${isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'}`}
+                      className={`w-full bg-white text-black ${
+                        isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
+                      }`}
                       style={styles.input}
                       placeholder="Amount"
                       placeholderTextColor="#9CA3AF"
@@ -191,8 +257,11 @@ const TransferScreen: React.FC = () => {
                     />
                   </LinearGradient>
                 </View>
-                {errors.amount && <Text className="text-red-500 text-xs mb-4">{errors.amount}</Text>}
+                {errors.amount && (
+                  <Text className="text-red-500 text-xs mb-4">{errors.amount}</Text>
+                )}
 
+                {/* Recipient address */}
                 <View className="mb-6">
                   <Text className="text-gray-500 text-sm mb-2">Recipient address</Text>
                   <LinearGradient
@@ -203,7 +272,9 @@ const TransferScreen: React.FC = () => {
                     style={styles.gradient}
                   >
                     <TextInput
-                      className={`w-full bg-white text-black ${isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'}`}
+                      className={`w-full bg-white text-black ${
+                        isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
+                      }`}
                       style={styles.input}
                       placeholder="Recipient address"
                       placeholderTextColor="#9CA3AF"
@@ -217,6 +288,7 @@ const TransferScreen: React.FC = () => {
                   )}
                 </View>
 
+                {/* Sender address or server errors */}
                 {errors.senderAddress && (
                   <Text className="text-red-500 text-xs mb-4">{errors.senderAddress}</Text>
                 )}
@@ -224,6 +296,7 @@ const TransferScreen: React.FC = () => {
                   <Text className="text-red-500 text-xs mb-4">{transferError.message}</Text>
                 )}
 
+                {/* Transfer button */}
                 <Button
                   title="Transfer"
                   onPress={handleTransfer}
@@ -236,6 +309,7 @@ const TransferScreen: React.FC = () => {
         </ScrollView>
       </KeyboardAvoidingView>
 
+      {/* Confirmation Modal */}
       <ConfirmationModal
         visible={isConfirmModalVisible}
         title="Confirm Transfer"
@@ -251,6 +325,7 @@ const TransferScreen: React.FC = () => {
   );
 };
 
+// Style definitions
 const styles = StyleSheet.create({
   gradient: {
     overflow: 'hidden',
