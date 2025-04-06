@@ -47,7 +47,7 @@ const TransferScreen: React.FC = () => {
   const [formData, setFormData] = useState<TransferData>({
     amount: '',
     senderAddress: '',
-    receiverAddress: '',
+    receiverAddress: '',//other field are useless in these operations
   });
 
   // State for toggling balance/coin display
@@ -320,7 +320,7 @@ const TransferScreen: React.FC = () => {
         isLandscape={isLandscape}
       />
 
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
     </SafeAreaView>
   );
 };

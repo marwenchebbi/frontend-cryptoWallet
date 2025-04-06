@@ -39,7 +39,7 @@ const BalanceDetails: React.FC<BalanceDetailsProps> = ({
       >
         <View className="w-2 h-2 bg-black rounded-full mr-2" />
         <Text className="text-black text-base">{selectedBalance}</Text>
-        <Ionicons name="swap-horizontal" size={RFValue(16)} color="#000" style={{ marginLeft: 8 }} />
+        <Ionicons name="swap-horizontal" size={RFValue(12)} color="#000" style={{ marginLeft: 8 }} />
       </TouchableOpacity>
 
 
