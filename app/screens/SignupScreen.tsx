@@ -19,7 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useOrientation } from '../hooks/shared/useOrientation';
 import { useHandleBack } from '../hooks/shared/useHandleBack';
-import { useSignup } from '../hooks/auth-hooks/SignupHook';
+import { useSignup } from '../hooks/auth-hooks/signup.hooks';
 import { SignupData } from '../models/types';
 import Header from '../../components/Header';
 import Button from '../../components/Button';

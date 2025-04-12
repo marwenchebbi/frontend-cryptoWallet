@@ -57,7 +57,7 @@ const Exchange: React.FC = () => {
 
   // Select mutation based on trade type
   const { mutate, isPending, error } = tradeType === 'buy' ? useBuyPRX() : useSellPRX();
-
+ 
   // Fetch wallet and price data
   const { data: walletInfo, isLoading: isWalletLoading, error: walletError, refetch: walletRefetch } = useGetWalletInfo(
     formData.senderAddress
@@ -96,7 +96,8 @@ const displayEquivalentAmount = (equivalentAmount: string, inputCurrency: 'USDT'
   // Handle input field changes
   const handleInputChange = (field: keyof TransferData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    setErrors((prev) => ({ ...prev, [field]: undefined }));
+    setErrors({});
+    
   };
 
   // Calculate equivalent amount using priceInfo
@@ -105,7 +106,7 @@ const displayEquivalentAmount = (equivalentAmount: string, inputCurrency: 'USDT'
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount)) return '0';
 
-    // Assuming priceInfo is PRX/USDT rate (1 PRX = priceInfo USDT)
+    
     if (formData.inputCurrency === 'PRX') {
       // PRX to USDT
       return (parsedAmount * priceInfo).toFixed(6);
@@ -300,10 +301,10 @@ const displayEquivalentAmount = (equivalentAmount: string, inputCurrency: 'USDT'
                 {priceError && <Text className="text-red-500 text-xs mb-4">Error fetching price</Text>}
 
                 {/* Validation errors */}
-                {errors.amount && <Text className="text-red-500 text-xs mb-4">{errors.amount}</Text>}
-                {errors.inputCurrency && <Text className="text-red-500 text-xs mb-4">{errors.inputCurrency}</Text>}
-                {errors.senderAddress && <Text className="text-red-500 text-xs mb-4">{errors.senderAddress}</Text>}
-                {error && <Text className="text-red-500 text-xs mb-4">{error.message}</Text>}
+                {errors.amount && <Text className="text-red-500 text-xs mb-4  text-center">{errors.amount}</Text>}
+                {errors.inputCurrency && <Text className="text-red-500 text-xs mb-4 text-center">{errors.inputCurrency}</Text>}
+                {errors.senderAddress && <Text className="text-red-500 text-xs mb-4 text-center">{errors.senderAddress}</Text>}
+                {error && <Text className="text-red-500 text-xs mb-4 text-center">{error.message}</Text>}
 
                 <Button title="Exchange" onPress={handleTrade} isLandscape={isLandscape} width="full" />
               </View>

@@ -16,7 +16,7 @@ const buyPRX = async (data: TransferData): Promise<boolean> => {
     return true;
   } else if (!res.ok) {
     const errorData = await res.json();
-    throw new Error(errorData.errorDetails?.message || 'Buy failed');
+    throw new Error(errorData.errorDetails?.message || 'Account Locked please login again');
   }
   return false;
 };
@@ -36,7 +36,7 @@ const sellPRX = async (data: TransferData): Promise<boolean> => {
     return true;
   } else if (!res.ok) {
     const errorData = await res.json();
-    throw new Error(errorData.errorDetails?.message || 'Sell failed');
+    throw new Error(errorData.errorDetails?.message || 'Account Locked please login again');
   }
   return false;
 };

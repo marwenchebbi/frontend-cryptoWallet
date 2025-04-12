@@ -18,7 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useOrientation } from '../hooks/shared/useOrientation';
 import { useHandleBack } from '../hooks/shared/useHandleBack';
-import { useLogin } from '../hooks/auth-hooks/LoginHooks'; // Adjust path
+import { useLogin } from '../hooks/auth-hooks/login.hooks'; // Adjust path
 import { LoginData } from '../models/types';
 import Header from '@/components/Header';
 import Button from '@/components/Button';
@@ -47,12 +47,12 @@ const LoginScreen: React.FC = () => {
         await SecureStore.setItemAsync('refreshToken', data.refreshToken);
         await SecureStore.setItemAsync('userId', data.userId.toString());
         await SecureStore.setItemAsync('walletAddress', data.walletAddress.toString());
-
+        console.log(SecureStore.getItem('accessToken'))
         //testing 
         console.log('Login success \n tokens stored securely');
         const walletAddress = await SecureStore.getItem('walletAddress')
         console.log(`User address : ${walletAddress}\n`)
-        router.push('/');// i need to redirect the user to the home page
+        router.push('/(tabs)/Transfer');// i need to redirect the user to the home page
       },
       onError: (err: any) => {
         console.log('Login error:', err.message); // Optional debug

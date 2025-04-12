@@ -127,6 +127,7 @@ const TransferScreen: React.FC = () => {
   const handleTransfer = async () => {
     const { errors, success } = await validateForm(formData, transferSchema);
 
+
     if (success) {
       if (!formData.senderAddress) {
         setErrors((prev) => ({ ...prev, senderAddress: 'Sender address is required' }));
@@ -142,6 +143,8 @@ const TransferScreen: React.FC = () => {
     } else {
       setErrors(errors);
     }
+
+
   };
 
   // Show loading screen while wallet info is loading
@@ -162,12 +165,12 @@ const TransferScreen: React.FC = () => {
     );
   }
 
-    // Refetch wallet and price information (pull-to-refresh)
-    const updateWAlletData = () => {
-      priceRefetch();
-      walletRefetch();
-    };
-  
+  // Refetch wallet and price information (pull-to-refresh)
+  const updateWAlletData = () => {
+    priceRefetch();
+    walletRefetch();
+  };
+
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -219,9 +222,8 @@ const TransferScreen: React.FC = () => {
             >
               <View className="bg-white rounded-3xl p-6" style={styles.transferContainer}>
                 <Text
-                  className={`text-black text-center font-semibold ${
-                    isLandscape ? 'text-lg' : 'text-xl'
-                  } mb-5`}
+                  className={`text-black text-center font-semibold ${isLandscape ? 'text-lg' : 'text-xl'
+                    } mb-5`}
                 >
                   Transfer
                 </Text>
@@ -245,9 +247,8 @@ const TransferScreen: React.FC = () => {
                     style={styles.gradient}
                   >
                     <TextInput
-                      className={`w-full bg-white text-black ${
-                        isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
-                      }`}
+                      className={`w-full bg-white text-black ${isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
+                        }`}
                       style={styles.input}
                       placeholder="Amount"
                       placeholderTextColor="#9CA3AF"
@@ -272,9 +273,8 @@ const TransferScreen: React.FC = () => {
                     style={styles.gradient}
                   >
                     <TextInput
-                      className={`w-full bg-white text-black ${
-                        isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
-                      }`}
+                      className={`w-full bg-white text-black ${isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
+                        }`}
                       style={styles.input}
                       placeholder="Recipient address"
                       placeholderTextColor="#9CA3AF"
@@ -284,16 +284,16 @@ const TransferScreen: React.FC = () => {
                     />
                   </LinearGradient>
                   {errors.receiverAddress && (
-                    <Text className="text-red-500 text-xs mt-1">{errors.receiverAddress}</Text>
+                    <Text className="text-red-500 text-xs mt-1 text-center">{errors.receiverAddress}</Text>
                   )}
                 </View>
 
                 {/* Sender address or server errors */}
                 {errors.senderAddress && (
-                  <Text className="text-red-500 text-xs mb-4">{errors.senderAddress}</Text>
+                  <Text className="text-red-500 text-xs mb-4 text-center">{errors.senderAddress}</Text>
                 )}
                 {transferError && (
-                  <Text className="text-red-500 text-xs mb-4">{transferError.message}</Text>
+                  <Text className="text-red-500 text-xs mb-4 text-center ">{transferError.message}</Text>
                 )}
 
                 {/* Transfer button */}

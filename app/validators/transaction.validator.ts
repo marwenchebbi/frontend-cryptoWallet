@@ -13,6 +13,6 @@ export const transferSchema = Yup.object().shape({
     }),
   senderAddress: Yup.string().required('Sender address is required'),
   inputCurrency: Yup.string()
-    .required('Input currency is required')
+  .optional()
     .oneOf(['USDT', 'PRX'], 'Input currency must be either USDT or PRX'),
 });

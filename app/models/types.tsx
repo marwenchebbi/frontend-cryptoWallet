@@ -16,6 +16,15 @@ export interface LoginResponse {
   userId: string;
 }
 
+
+
+
+// this will be the response when a login backend  error occures 
+export interface ErrorResponse {
+  error: boolean;
+  errorDetails: ErrorDetails;
+  timeStamp: string;
+}
 export interface ErrorDetails {
   statusCode: number;
   message: string;
@@ -24,16 +33,8 @@ export interface ErrorDetails {
 }
 
 
-// this will be the response when a backend  error occures 
-export interface ErrorResponse {
-  error: boolean;
-  errorDetails: ErrorDetails;
-  timeStamp: string;
-}
 
-
-
-// Define the type for the transfer data
+// Define the type for the transfer api (send buy sell ) for all the transction API's
 export interface TransferData {
   amount: string;
   senderAddress: string;
@@ -41,10 +42,12 @@ export interface TransferData {
   inputCurrency?: 'USDT' | 'PRX'; // New field is optional for the transfer operations
 }
 
+
+//this type is used for the response of  whene t fetching the wallet info
 export interface walletInfoRequest {
-    address : string,
-    prxBalance : string,
-    usdtBalance : string
+  address: string,
+  prxBalance: string,
+  usdtBalance: string
 }
 
 

@@ -28,7 +28,7 @@ const CryptoWalletScreen = () => {
       {/* Intro in the Middle */}
       <View className={`flex-1 justify-center items-center ${isLandscape ? 'px-6' : 'px-4'}`}>
         <Text
-          className={`text-gray-600 text-center leading-6 ${
+          className={`text-gray-600 text-center  leading-relaxed ${
             isLandscape ? 'text-base' : 'text-lg'
           }`}
           style={{ fontSize: RFValue(isLandscape ? 14 : 18) }}
