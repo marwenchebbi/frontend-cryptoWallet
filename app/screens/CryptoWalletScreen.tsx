@@ -1,93 +1,193 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, SafeAreaView, Dimensions, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { RFValue } from 'react-native-responsive-fontsize';
-import { useOrientation } from '../hooks/shared/useOrientation'; // Adjust path as needed
+import { useRouter } from 'expo-router';
 
 const CryptoWalletScreen = () => {
   const router = useRouter();
-  const isLandscape = useOrientation();
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
+
+  // Consistent spacing scale
+  const SPACING = {
+    xs: 4,
+    sm: 8,
+    md: 16,
+    lg: 24,
+  };
+
+  // Responsive font size helper
+  const responsiveFontSize = (baseSize: number) => {
+    return Math.round(baseSize * Math.min(width, height) / 375);
+  };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
       {/* Header at the Top */}
       <View
-        className={`w-full ${isLandscape ? 'pt-2 pb-1 px-6' : 'pt-4 pb-2 px-4 mt-6'}`}
+        style={{
+          width: '100%',
+          paddingTop: isLandscape ? SPACING.sm : SPACING.lg,
+          paddingBottom: isLandscape ? SPACING.xs : SPACING.sm,
+          paddingHorizontal: isLandscape ? SPACING.lg : SPACING.md,
+        }}
       >
         <Text
-          className={`font-bold text-black text-center ${
-            isLandscape ? 'text-2xl' : 'text-3xl'
-          }`}
+          style={{
+            fontSize: responsiveFontSize(isLandscape ? 24 : 28),
+            fontWeight: 'bold',
+            color: '#000000',
+            textAlign: 'center',
+          }}
+          accessible
+          accessibilityLabel="Crypto Wallet Header"
         >
           Crypto Wallet
         </Text>
       </View>
 
       {/* Intro in the Middle */}
-      <View className={`flex-1 justify-center items-center ${isLandscape ? 'px-6' : 'px-4'}`}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: isLandscape ? SPACING.lg : SPACING.md,
+        }}
+      >
         <Text
-          className={`text-gray-600 text-center  leading-relaxed ${
-            isLandscape ? 'text-base' : 'text-lg'
-          }`}
-          style={{ fontSize: RFValue(isLandscape ? 14 : 18) }}
+          style={{
+            fontSize: responsiveFontSize(isLandscape ? 18 : 20),
+            fontWeight: '600',
+            color: '#1F2937',
+            textAlign: 'center',
+            marginBottom: SPACING.sm,
+          }}
+          accessible
+          accessibilityLabel="Crypto Wallet Introduction"
         >
-          Secure, fast, and easy-to-use crypto wallet. Manage your assets effortlessly and stay ahead in the digital economy.
+          Your Crypto, Your Control
+        </Text>
+        <Text
+          style={{
+            fontSize: responsiveFontSize(isLandscape ? 14 : 16),
+            color: '#4B5563',
+            textAlign: 'center',
+            lineHeight: responsiveFontSize(22),
+          }}
+        >
+          Manage your assets securely and effortlessly with our fast and easy-to-use wallet.
         </Text>
       </View>
 
       {/* Buttons and User Agreement at the Bottom */}
-      <View className={`w-full ${isLandscape ? 'px-6 pb-4' : 'px-4 pb-8'}`}>
-        {/* User Agreement and Privacy Policy Text */}
-        <View className={`flex-row items-center justify-center ${isLandscape ? 'mb-2' : 'mb-4'}`}>
+      <View
+        style={{
+          width: '100%',
+          paddingHorizontal: isLandscape ? SPACING.lg : SPACING.md,
+          paddingBottom: isLandscape ? SPACING.md : SPACING.lg,
+        }}
+      >
+        {/* User Agreement Text */}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: isLandscape ? SPACING.sm : SPACING.md,
+          }}
+        >
           <Text
-            className={`text-gray-700 m-2 ${isLandscape ? 'text-xs' : 'text-sm'}`}
-            style={{ fontSize: RFValue(isLandscape ? 12 : 14) }}
+            style={{
+              fontSize: responsiveFontSize(isLandscape ? 14 : 15),
+              color: '#4B5563',
+              textAlign: 'center',
+              marginHorizontal: SPACING.sm,
+            }}
+            accessible
+            accessibilityLabel="User Agreement and Privacy Policy"
           >
             By continuing you agree to our{' '}
-            <Text className="underline text-purple-600">User Agreement</Text>{' '}
+            <Text
+              style={{ color: '#6B5B95', textDecorationLine: 'underline' }}
+              onPress={() => router.push('/')}
+            >
+              User Agreement
+            </Text>{' '}
             and{' '}
-            <Text className="underline text-purple-600">Privacy Policy</Text>.
+            <Text
+              style={{ color: '#6B5B95', textDecorationLine: 'underline' }}
+              onPress={() => router.push('/')}
+            >
+              Privacy Policy
+            </Text>.
           </Text>
-          <Ionicons
-            name="checkbox"
-            size={RFValue(16)}
-            color="#6B5B95"
-            className="ml-2"
-          />
         </View>
 
         {/* Buttons */}
-        <View className={`flex-row justify-center ${isLandscape ? 'mb-4' : 'mb-6'}`}>
+        <View
+          style={{
+            flexDirection: isLandscape ? 'row' : 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: SPACING.sm,
+          }}
+        >
           <TouchableOpacity
-            className={`bg-purple-200 rounded-full mr-4 ${
-              isLandscape ? 'py-2 px-4' : 'py-3 px-6'
-            }`}
-            onPress={() => router.push('/(tabs)/Home')}
+            style={{
+              backgroundColor: '#6B5B95',
+              borderRadius: 9999,
+              paddingVertical: isLandscape ? SPACING.sm : SPACING.md,
+              paddingHorizontal: isLandscape ? SPACING.md : SPACING.lg,
+              marginRight: isLandscape ? SPACING.md : 0,
+              marginBottom: isLandscape ? 0 : SPACING.sm,
+              minHeight: 48,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+            activeOpacity={0.7}
+            onPress={() => router.push('/')}
+            accessible
+            accessibilityLabel="Explore Features"
+            accessibilityHint="Learn more about the crypto wallet features"
           >
             <Text
-              className={`text-black font-medium ${
-                isLandscape ? 'text-sm' : 'text-base'
-              }`}
-              style={{ fontSize: RFValue(isLandscape ? 14 : 16) }}
+              style={{
+                fontSize: responsiveFontSize(isLandscape ? 14 : 16),
+                color: '#FFFFFF',
+                fontWeight: '500',
+                textAlign: 'center',
+              }}
             >
-              Learn More
+              Explore Features
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            className={`bg-black rounded-full ${
-              isLandscape ? 'py-2 px-4' : 'py-3 px-6'
-            }`}
-            onPress={() => router.push('/screens/LoginScreen')}
+            style={{
+              backgroundColor: '#000000',
+              borderRadius: 9999,
+              paddingVertical: isLandscape ? SPACING.sm : SPACING.md,
+              paddingHorizontal: isLandscape ? SPACING.md : SPACING.lg,
+              minHeight: 48,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+            activeOpacity={0.7}
+            onPress={() => router.push('/screens/SignupScreen')}
+            accessible
+            accessibilityLabel="Sign Up"
+            accessibilityHint="Create a new account to start using the crypto wallet"
           >
             <Text
-              className={`text-white font-medium ${
-                isLandscape ? 'text-sm' : 'text-base'
-              }`}
-              style={{ fontSize: RFValue(isLandscape ? 14 : 16) }}
+              style={{
+                fontSize: responsiveFontSize(isLandscape ? 14 : 16),
+                color: '#FFFFFF',
+                fontWeight: '500',
+                textAlign: 'center',
+              }}
             >
-              Get Started
+              Sign Up
             </Text>
           </TouchableOpacity>
         </View>

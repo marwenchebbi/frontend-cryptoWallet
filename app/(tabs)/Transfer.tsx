@@ -29,6 +29,7 @@ import BalanceDetails from '@/components/BalancesDetails';
 import * as SecureStore from 'expo-secure-store';
 import { validateForm } from '../validators/helpers';
 import { transferSchema } from '../validators/transaction.validator';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 // API hooks
 import { useTransferPRX, useTransferUSDT } from '../hooks/transactions-hooks/transfer.hooks';
@@ -179,7 +180,7 @@ const TransferScreen: React.FC = () => {
         className="flex-1"
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <ScrollView
+        <Animated.ScrollView
           contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
           keyboardShouldPersistTaps="handled"
           refreshControl={
@@ -306,7 +307,7 @@ const TransferScreen: React.FC = () => {
               </View>
             </LinearGradient>
           </View>
-        </ScrollView>
+        </Animated.ScrollView>
       </KeyboardAvoidingView>
 
       {/* Confirmation Modal */}

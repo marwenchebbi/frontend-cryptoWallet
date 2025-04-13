@@ -51,3 +51,15 @@ export interface walletInfoRequest {
 }
 
 
+// logout message response 
+export interface LogoutResponse {
+  message: string;
+}
+// user creedentails info 
+export interface UserFormData {
+  name: string;
+  email: string;
+}
+
+
+

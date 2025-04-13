@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // Import your global CSS file
 import "../global.css";
+import Animated from "react-native-reanimated";
 
 
 const queryClient = new QueryClient();
