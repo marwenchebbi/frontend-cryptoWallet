@@ -16,13 +16,13 @@ export default function AppLockScreen({ navigation }: any) {
             <Text className="flex-1 text-lg font-semibold text-center items-center text-black">
                 Ensure that only you can access and manage your wallets by securing them with your lock
             </Text>
-            <Button title="Enable App Lock" onPress={() => router.push('/screens/LoginScreen')} isLandscape={false} />
+            <Button title="Enable App Lock" onPress={() => router.push('/screens/login.screen')} isLandscape={false} />
 
             <View className="rounded-3xl p-px bg-gradient-to-b from-gray-200 to-transparent">
                 <View className="bg-gray-50 p-10">
                 </View>
             </View>
-            <StatusBar style='light' />
+            <StatusBar style='light' translucent={false}/>
         </View>
     );
 }

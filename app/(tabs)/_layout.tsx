@@ -10,7 +10,7 @@ const TabsLayout = () => {
     return (
         <Tabs
             screenOptions={{
-                
+
                 headerShown: false,
                 tabBarActiveTintColor: '#e91e63',
                 tabBarInactiveTintColor: 'black',
@@ -25,18 +25,18 @@ const TabsLayout = () => {
                     borderTopRightRadius: 15,
                     paddingBottom: Platform.OS === 'ios' ? 20 : 10,
                     paddingTop: 8,
-                  
+
                     // Shadow for iOS
                     shadowColor: '#000',
                     shadowOffset: { width: 0, height: 4 },
                     shadowOpacity: 0.1,
                     shadowRadius: 6,
-                  
+
                     // Shadow for Android
                     elevation: 8,
-                  },
-                  
-                
+                },
+
+
                 tabBarLabelStyle: {
                     fontSize: 11,
                     fontWeight: '600',
@@ -49,6 +49,7 @@ const TabsLayout = () => {
         >
             <Tabs.Screen
                 name="Home"
+
                 options={{
                     tabBarLabel: 'Home',
                     tabBarIcon: ({ color }) => (
@@ -91,6 +92,7 @@ const TabsLayout = () => {
                     ),
                 }}
             />
+
         </Tabs>
     );
 };

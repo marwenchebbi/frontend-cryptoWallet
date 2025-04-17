@@ -25,11 +25,13 @@ import Header from '../../components/Header';
 import Button from '../../components/Button';
 import { signupSchema } from '../validators/auth.validator';
 import { validateForm } from '../validators/helpers';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Yup validation schema
 
 
 const SignupScreen: React.FC = () => {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState<SignupData>({
@@ -48,7 +50,7 @@ const SignupScreen: React.FC = () => {
     mutate(formData, {
       onSuccess: (success) => {
         if (success) {
-          router.push('/screens/LoginScreen');
+          router.push('/screens/login.screen');
         }
       },
       onError: (err) => {
@@ -58,10 +60,10 @@ const SignupScreen: React.FC = () => {
   };
 
   const handleSignup = async () => {
-    const { errors , success } = await validateForm(formData,signupSchema);
+    const { errors, success } = await validateForm(formData, signupSchema);
     if (success) {
       submitSignup();
-    }else{
+    } else {
       setErrors(errors);
     }
   };
@@ -75,6 +77,13 @@ const SignupScreen: React.FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
+
+      <View
+        className="absolute top-0 left-0 right-0 z-40 bg-transparent "
+        style={{ paddingTop: insets.top }}
+      >
+        <Header title="Profile" onBackPress={handleBack} isLandscape={isLandscape} backEnabled={true} historyEnabled ={false} />
+      </View>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
@@ -84,7 +93,7 @@ const SignupScreen: React.FC = () => {
           contentContainerStyle={{ flexGrow: 1 }}
           keyboardShouldPersistTaps="handled"
         >
-          <Header title="Create Account" onBackPress={handleBack} isLandscape={isLandscape} />
+
 
           <View className={`flex-1 justify-center items-center ${isLandscape ? 'px-6' : 'px-4'}`}>
             <View className={`max-w-md w-full ${isLandscape ? 'mb-2' : 'mb-4'}`}>
@@ -96,9 +105,8 @@ const SignupScreen: React.FC = () => {
                 style={styles.gradient}
               >
                 <TextInput
-                  className={`w-full bg-white text-black ${
-                    isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
-                  }`}
+                  className={`w-full bg-white text-black ${isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
+                    }`}
                   style={styles.input}
                   placeholder="Name"
                   placeholderTextColor="#9CA3AF"
@@ -118,9 +126,8 @@ const SignupScreen: React.FC = () => {
                 style={styles.gradient}
               >
                 <TextInput
-                  className={`w-full bg-white text-black ${
-                    isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
-                  }`}
+                  className={`w-full bg-white text-black ${isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
+                    }`}
                   style={styles.input}
                   placeholder="Email"
                   placeholderTextColor="#9CA3AF"
@@ -142,9 +149,8 @@ const SignupScreen: React.FC = () => {
                 style={styles.gradient}
               >
                 <TextInput
-                  className={`w-full bg-white text-black ${
-                    isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
-                  }`}
+                  className={`w-full bg-white text-black ${isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
+                    }`}
                   style={styles.input}
                   placeholder="Password"
                   placeholderTextColor="#9CA3AF"
@@ -182,7 +188,7 @@ const SignupScreen: React.FC = () => {
             />
             {isPending && <ActivityIndicator size="small" color="#A855F7" />}
 
-            <TouchableOpacity onPress={() => router.push('/screens/LoginScreen')}>
+            <TouchableOpacity onPress={() => router.push('/screens/login.screen')}>
               <Text className={`text-gray-600 ${isLandscape ? 'text-xs mb-4' : 'text-sm mb-6'}`}>
                 I already have an account
               </Text>
@@ -201,13 +207,13 @@ const SignupScreen: React.FC = () => {
                 <FontAwesome name="facebook" size={RFValue(30)} color="#000" />
               </TouchableOpacity>
               <TouchableOpacity className="mx-2">
-                <MaterialCommunityIcons name="apple" size={RFValue(30)} color="#000" />
+                <MaterialCommunityIcons name="github" size={RFValue(30)} color="#000" />
               </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      <StatusBar style="light" />
+      <StatusBar style="light" translucent={false} />
     </SafeAreaView>
   );
 };

@@ -4,7 +4,7 @@ import { SignupData } from '../../models/types';
 
 
 const signupUser = async (data: SignupData): Promise<boolean> => {
-  const url = 'http://192.168.1.14:3000/auth/signup';
+  const url = 'http://192.168.11.38:3000/auth/signup';
   const res = await fetch(url, {
     method: 'POST',
     headers: {

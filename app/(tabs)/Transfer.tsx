@@ -28,7 +28,7 @@ import BalanceDetails from '@/components/BalancesDetails';
 // Libraries & utils
 import * as SecureStore from 'expo-secure-store';
 import { validateForm } from '../validators/helpers';
-import { transferSchema } from '../validators/transaction.validator';
+import { transcationSchema } from '../validators/transaction.validator';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 // API hooks
@@ -37,9 +37,11 @@ import { useGetWalletInfo } from '../hooks/wallet-info-hooks/balances.hooks';
 import { useGetPrice } from '../hooks/transactions-hooks/price.hooks';
 
 // Types
-import { TransferData } from '../models/types';
+import { TransactionType, TransferData } from '../models/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TransferScreen: React.FC = () => {
+   const insets = useSafeAreaInsets();
   const router = useRouter(); // For navigation
   const isLandscape = useOrientation(); // Detect screen orientation
   const handleBack = useHandleBack(); // Back button behavior
@@ -126,7 +128,7 @@ const TransferScreen: React.FC = () => {
 
   // Called when user clicks "Transfer"
   const handleTransfer = async () => {
-    const { errors, success } = await validateForm(formData, transferSchema);
+    const { errors, success } = await validateForm(formData, transcationSchema);
 
 
     if (success) {
@@ -171,29 +173,43 @@ const TransferScreen: React.FC = () => {
     priceRefetch();
     walletRefetch();
   };
+   const handleHistoryIcon = () =>{
+      router.push({
+        pathname: '/screens/history.screen',
+        params: { transactionType: TransactionType.TRANSFER },
+      });
+    }
 
 
   return (
     <SafeAreaView className="flex-1 bg-white">
+          <View
+        className="absolute top-0 left-0 right-0 z-40 bg-transparent"
+        style={{ paddingTop: insets.top }}
+      >
+        <Header title="Profile" onHistoryPress={handleHistoryIcon} isLandscape={isLandscape} backEnabled={false} historyEnabled={true}  />
+      </View>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <Animated.ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+        <Animated.ScrollView 
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', }}
           keyboardShouldPersistTaps="handled"
           refreshControl={
-            <RefreshControl
+            <RefreshControl className='flex-1 absolute z-50'
               refreshing={isWalletLoading || isPriceLoading}
               onRefresh={updateWAlletData}
+              style={{ flexGrow: 1, justifyContent: 'center', zIndex : 40 }}
             />
           }
         >
-          <Header title="" onBackPress={handleBack} isLandscape={isLandscape} />
+  
 
           {/* Display balance info */}
-          <BalanceDetails
+          <View className="items-center mt-20">
+          <BalanceDetails 
             walletInfo={walletInfo}
             selectedBalance={selectedBalance}
             onToggleBalance={() =>
@@ -202,18 +218,19 @@ const TransferScreen: React.FC = () => {
             isLandscape={isLandscape}
             price={priceInfo ?? 0}
           />
+          </View>
 
           {/* Refresh tip */}
           {!isWalletLoading && (
             <View className="mt-4 p-2 bg-white rounded">
-              <Text className="text-pink-700 text-center">
+              <Text className="text-pink-700 text-center text-sm">
                 Swipe down to refresh your balance details
               </Text>
             </View>
           )}
 
           {/* Transfer form container */}
-          <View className="flex-1 items-center justify-center my-8">
+          <View className="flex-1 items-center justify-center my-8 ">
             <LinearGradient
               colors={['#A855F7', '#F472B6']}
               start={{ x: 0, y: 0 }}
@@ -321,7 +338,7 @@ const TransferScreen: React.FC = () => {
         isLandscape={isLandscape}
       />
 
-      <StatusBar style="dark" />
+      <StatusBar style="dark" translucent={false} />
     </SafeAreaView>
   );
 };

@@ -13,10 +13,12 @@ export default function RootLayout() {
         <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false}}/>
             <Stack.Screen name="index" options={{ headerShown: false}}/>
-            <Stack.Screen name="screens/LoginScreen" options={{ headerShown: false}}/>
-            <Stack.Screen name="screens/AppLockScreen" options={{ headerShown: false}}/>
-            <Stack.Screen name="screens/SignupScreen" options={{ headerShown: false}}/>
-            <Stack.Screen name="screens/CryptoWalletScreen" options={{ headerShown: false}}/>
+            <Stack.Screen name="screens/login.screen" options={{ headerShown: false}}/>
+            <Stack.Screen name="screens/app-lock.screen" options={{ headerShown: false}}/>
+            <Stack.Screen name="screens/signup.screen" options={{ headerShown: false}}/>
+            <Stack.Screen name="screens/splash.screen" options={{ headerShown: false}}/>
+            <Stack.Screen name="screens/history.screen" options={{ headerShown: false}}/>
+
         </Stack>
         </QueryClientProvider>
     );

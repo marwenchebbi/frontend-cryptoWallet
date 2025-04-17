@@ -26,7 +26,7 @@ import BalanceDetails from '@/components/BalancesDetails';
 // Utilities and validation
 import * as SecureStore from 'expo-secure-store';
 import { validateForm } from '../validators/helpers';
-import { transferSchema } from '../validators/transaction.validator';
+import { transcationSchema } from '../validators/transaction.validator';
 
 // Hooks for handling transactions and wallet info
 import { useBuyPRX, useSellPRX } from '../hooks/transactions-hooks/exchange.hooks';
@@ -34,12 +34,15 @@ import { useGetWalletInfo } from '../hooks/wallet-info-hooks/balances.hooks';
 import { useGetPrice } from '../hooks/transactions-hooks/price.hooks';
 
 // Types and modals
-import { TransferData } from '../models/types';
+import { TransactionType, TransferData } from '../models/types';
 import ConfirmationModal from '../modals/confirmationModal';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 
 const Exchange: React.FC = () => {
   const isLandscape = useOrientation();
   const handleBack = useHandleBack();
+  const insets = useSafeAreaInsets();
 
   // Form state
   const [formData, setFormData] = useState<TransferData>({
@@ -57,7 +60,7 @@ const Exchange: React.FC = () => {
 
   // Select mutation based on trade type
   const { mutate, isPending, error } = tradeType === 'buy' ? useBuyPRX() : useSellPRX();
- 
+
   // Fetch wallet and price data
   const { data: walletInfo, isLoading: isWalletLoading, error: walletError, refetch: walletRefetch } = useGetWalletInfo(
     formData.senderAddress
@@ -74,21 +77,21 @@ const Exchange: React.FC = () => {
     }
   };
 
-// Display the equivalent amount message based on trade type and input currency
-const displayEquivalentAmount = (equivalentAmount: string, inputCurrency: 'USDT' | 'PRX'): string => {
-  // Buying PRX
-  if (tradeType === 'buy') {
-    return inputCurrency === 'USDT'
-      ? `You will receive ≈ ${equivalentAmount} PRX` // Paying with USDT to get PRX
-      : `You will spend ≈ ${equivalentAmount} USDT`; // Specifying PRX to buy with USDT
-  } 
-  // Selling PRX
-  else {
-    return inputCurrency === 'USDT'
-      ? `You will spend ≈ ${equivalentAmount} PRX`   // Specifying USDT to get PRX (sell PRX)
-      : `You will receive ≈ ${equivalentAmount} USDT`; // Selling PRX to get USDT
-  }
-};
+  // Display the equivalent amount message based on trade type and input currency
+  const displayEquivalentAmount = (equivalentAmount: string, inputCurrency: 'USDT' | 'PRX'): string => {
+    // Buying PRX
+    if (tradeType === 'buy') {
+      return inputCurrency === 'USDT'
+        ? `You will receive ≈ ${equivalentAmount} PRX` // Paying with USDT to get PRX
+        : `You will spend ≈ ${equivalentAmount} USDT`; // Specifying PRX to buy with USDT
+    }
+    // Selling PRX
+    else {
+      return inputCurrency === 'USDT'
+        ? `You will spend ≈ ${equivalentAmount} PRX`   // Specifying USDT to get PRX (sell PRX)
+        : `You will receive ≈ ${equivalentAmount} USDT`; // Selling PRX to get USDT
+    }
+  };
   React.useEffect(() => {
     fetchSenderAddress();
   }, []);
@@ -97,7 +100,7 @@ const displayEquivalentAmount = (equivalentAmount: string, inputCurrency: 'USDT'
   const handleInputChange = (field: keyof TransferData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setErrors({});
-    
+
   };
 
   // Calculate equivalent amount using priceInfo
@@ -106,7 +109,7 @@ const displayEquivalentAmount = (equivalentAmount: string, inputCurrency: 'USDT'
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount)) return '0';
 
-    
+
     if (formData.inputCurrency === 'PRX') {
       // PRX to USDT
       return (parsedAmount * priceInfo).toFixed(6);
@@ -146,7 +149,7 @@ const displayEquivalentAmount = (equivalentAmount: string, inputCurrency: 'USDT'
 
   // Handle validation and show confirmation modal
   const handleTrade = async () => {
-    const { errors, success } = await validateForm(formData, transferSchema);
+    const { errors, success } = await validateForm(formData, transcationSchema);
     if (success) {
       if (!formData.senderAddress) {
         setErrors((prev) => ({ ...prev, senderAddress: 'Sender address is required' }));
@@ -181,21 +184,35 @@ const displayEquivalentAmount = (equivalentAmount: string, inputCurrency: 'USDT'
   const outputCurrency = tradeType === 'buy' ? 'PRX' : 'USDT';
   const equivalentAmount = calculateEquivalent(formData.amount);
 
+  const handleHistoryIcon = () =>{
+    router.push({
+      pathname: '/screens/history.screen',
+      params: { transactionType: TransactionType.TRADING },
+    });
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-white">
+
+      <View
+        className="absolute top-0 left-0 right-0 z-40 bg-transparent "
+        style={{ paddingTop: insets.top }}
+      >
+        <Header title="Exchange" onHistoryPress={handleHistoryIcon} isLandscape={isLandscape} backEnabled={false} historyEnabled={true}/>
+      </View>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', zIndex: 50 }}
           keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl refreshing={isWalletLoading || isPriceLoading} onRefresh={updateWalletData} />
           }
         >
-          <Header title="" onBackPress={handleBack} isLandscape={isLandscape} />
+          <View className='mt-20'></View>
           <BalanceDetails
             walletInfo={walletInfo}
             selectedBalance={selectedBalance}
@@ -323,7 +340,7 @@ const displayEquivalentAmount = (equivalentAmount: string, inputCurrency: 'USDT'
         isLandscape={isLandscape}
       />
 
-      <StatusBar style="dark" />
+      <StatusBar style="dark" translucent={false} />
     </SafeAreaView>
   );
 };

@@ -2,30 +2,30 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RFValue } from 'react-native-responsive-fontsize';
+import Octicons from '@expo/vector-icons/Octicons';
 
 interface HeaderProps {
   title: string;
-  onBackPress: () => void;
+  onBackPress?: () => void;
+  onHistoryPress?: () => void;
   isLandscape: boolean;
+  backEnabled?: boolean,
+  historyEnabled?: boolean
 }
 
-const Header: React.FC<HeaderProps> = ({ title, onBackPress, isLandscape }) => {
+const Header: React.FC<HeaderProps> = ({  onBackPress, isLandscape,backEnabled , historyEnabled , onHistoryPress}) => {
   return (
     <View
-      className={`w-full flex-row items-center justify-between ${
-        isLandscape ? 'px-6 py-2' : 'px-4 pt-8 pb-4'
-      }`}
+      className={`w-full h-15 flex-row items-center justify-between px-4 py-2`}
     >
+      {backEnabled &&
       <TouchableOpacity className={isLandscape ? 'p-1' : 'p-2'} onPress={onBackPress}>
-        <Ionicons name="arrow-back" size={RFValue(24)} color="#000" />
-      </TouchableOpacity>
-      <Text
-        className={`font-bold text-black flex-1 text-center ${
-          isLandscape ? 'text-xl mr-8' : 'text-2xl mr-12'
-        }`}
-      >
-        {title}
-      </Text>
+        <Ionicons name="arrow-back" size={RFValue(28)} color="#000" />
+      </TouchableOpacity>}
+
+      {historyEnabled && <TouchableOpacity className={isLandscape ? 'p-1' : 'p-2'} onPress={onHistoryPress}  >
+        <Octicons name="history" size={RFValue(24)} color="black" />
+      </TouchableOpacity> }
     </View>
   );
 };

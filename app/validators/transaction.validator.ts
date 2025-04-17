@@ -1,6 +1,8 @@
 import * as Yup from 'yup';
 
-export const transferSchema = Yup.object().shape({
+
+//this schema is used for any type of transactions 
+export const transcationSchema = Yup.object().shape({
   amount: Yup.string()
     .required('Amount is required')
     .matches(/^[0-9]+(\.[0-9]+)?$/, 'Amount must be a valid number')
@@ -13,6 +15,6 @@ export const transferSchema = Yup.object().shape({
     }),
   senderAddress: Yup.string().required('Sender address is required'),
   inputCurrency: Yup.string()
-  .optional()
+    .optional()
     .oneOf(['USDT', 'PRX'], 'Input currency must be either USDT or PRX'),
 });

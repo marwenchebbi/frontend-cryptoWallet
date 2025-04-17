@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 const getPrice = async (): Promise<number> => {
-  const url = 'http://192.168.1.14:3000/transaction/price' 
+  const url = 'http://192.168.11.38:3000/transaction/price' 
   const res = await fetch(url, {
     method: 'GET',
     headers: {

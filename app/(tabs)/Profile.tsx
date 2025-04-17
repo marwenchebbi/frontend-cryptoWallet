@@ -9,13 +9,12 @@ import {
   Platform,
   RefreshControl,
   Alert,
-  Image,
   TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import { MaterialIcons } from '@expo/vector-icons'; // Replaced react-native-vector-icons
+import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RFValue } from 'react-native-responsive-fontsize';
@@ -26,6 +25,7 @@ import { useHandleBack } from '../hooks/shared/useHandleBack';
 import { useGetUserInfo } from '../hooks/auth-hooks/user-info.hooks';
 import { useLogout } from '../hooks/auth-hooks/logout.hooks';
 import { useUpdateProfile } from '../hooks/auth-hooks/update-profile.hooks';
+import { useChangePassword } from '../hooks/auth-hooks/change-password.hooks';
 import { UserFormData } from '../models/types';
 
 // Components
@@ -43,9 +43,17 @@ const ProfileScreen: React.FC = () => {
     name: '',
     email: '',
   });
+  // Password change state
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: '',
+    newPassword: '',
+  });
   const [isEditingName, setIsEditingName] = useState(false);
-  const [isEditingEmail, setIsEditingEmail] = useState(false);
-  const [errors, setErrors] = useState<Partial<UserFormData & { general: string }>>({});
+ // const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [isEditingPassword, setIsEditingPassword] = useState(false);
+  const [errors, setErrors] = useState<
+    Partial<UserFormData & { oldPassword: string; newPassword: string; general: string }>
+  >({});
 
   // Fetch user info
   const {
@@ -61,6 +69,9 @@ const ProfileScreen: React.FC = () => {
   // Update profile mutation
   const { mutate: updateProfileMutate, isPending: isUpdatePending } = useUpdateProfile();
 
+  // Change password mutation
+  const { mutate: changePasswordMutate, isPending: isChangePasswordPending } = useChangePassword();
+
   // Initialize form data when user info loads
   useEffect(() => {
     if (userInfo) {
@@ -71,13 +82,22 @@ const ProfileScreen: React.FC = () => {
     }
   }, [userInfo]);
 
-  // Handle input changes
+  // Handle input changes for profile
   const handleInputChange = (field: keyof UserFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
-    setErrors({});
+    setErrors((prev) => ({ ...prev, general: undefined }));
+  };
+
+  // Handle input changes for passwords
+  const handlePasswordChange = (field: 'oldPassword' | 'newPassword', value: string) => {
+    setPasswordData((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+    setErrors((prev) => ({ ...prev, general: undefined }));
   };
 
   // Handle save profile
@@ -85,7 +105,6 @@ const ProfileScreen: React.FC = () => {
     updateProfileMutate(formData, {
       onSuccess: () => {
         setIsEditingName(false);
-        setIsEditingEmail(false);
         Alert.alert('Success', 'Profile updated successfully');
         userRefetch();
       },
@@ -100,11 +119,31 @@ const ProfileScreen: React.FC = () => {
     });
   };
 
+  // Handle change password
+  const handleChangePassword = () => {
+    changePasswordMutate(passwordData, {
+      onSuccess: () => {
+        setIsEditingPassword(false);
+        setPasswordData({ oldPassword: '', newPassword: '' });
+        Alert.alert('Success', 'Password changed successfully. Please log in again.');
+        router.replace('/screens/login.screen');
+      },
+      onError: (error: { message: string }) => {
+        try {
+          const validationErrors = JSON.parse(error.message);
+          setErrors(validationErrors);
+        } catch {
+          setErrors({ general: error.message || 'Failed to change password' });
+        }
+      },
+    });
+  };
+
   // Handle logout
   const handleLogout = () => {
     logoutMutate(undefined, {
       onSuccess: () => {
-        router.replace('/screens/LoginScreen');
+        router.replace('/screens/login.screen');
         Alert.alert('Success', 'You have been logged out');
       },
       onError: (error) => {
@@ -122,8 +161,9 @@ const ProfileScreen: React.FC = () => {
   const updateData = () => {
     userRefetch();
     setIsEditingName(false);
-    setIsEditingEmail(false);
+    setIsEditingPassword(false);
     setErrors({});
+    setPasswordData({ oldPassword: '', newPassword: '' });
     if (userInfo) {
       setFormData({
         name: userInfo.name,
@@ -153,23 +193,35 @@ const ProfileScreen: React.FC = () => {
   // Estimate tab bar height
   const tabBarHeight = 50 + insets.bottom;
 
+  // Estimate header height (adjust based on your Header component's actual height)
+  const headerHeight = isLandscape ? 60 : 80; // You may need to adjust this value
+
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1  bg-white">
+      {/* Fixed Header */}
+      <View
+        className="absolute top-0 left-0 right-0 z-50 bg-transparent"
+        style={{ paddingTop: insets.top }}
+      >
+        <Header title="Profile" onBackPress={handleBack} isLandscape={isLandscape} backEnabled={false} historyEnabled={false} />
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
-        keyboardVerticalOffset={Platform.OS === 'ios' ? tabBarHeight : 20 + tabBarHeight}
+        keyboardVerticalOffset={
+          Platform.OS === 'ios' ? tabBarHeight + headerHeight : 20 + tabBarHeight
+        }
       >
         <Animated.ScrollView
           contentContainerStyle={{
             flexGrow: 1,
+            paddingTop: headerHeight + insets.top, // Prevent content from being hidden under header
             paddingBottom: tabBarHeight + 40,
           }}
           keyboardShouldPersistTaps="handled"
-          refreshControl={<RefreshControl refreshing={isUserLoading} onRefresh={updateData} />}
+          refreshControl={<RefreshControl refreshing={isUserLoading} onRefresh={updateData} tintColor={'red'}/>}
         >
-          <Header title="Profile" onBackPress={handleBack} isLandscape={isLandscape} />
-
           {/* QR Code Section */}
           <View className="items-center mt-6">
             {userInfo?.walletAddress ? (
@@ -250,27 +302,11 @@ const ProfileScreen: React.FC = () => {
                     placeholderTextColor="#9CA3AF"
                     value={formData.email}
                     onChangeText={(text) => handleInputChange('email', text)}
-                    editable={isEditingEmail}
+                    editable= {false}
                     keyboardType="email-address"
                     autoCapitalize="none"
                   />
-                  <TouchableOpacity
-                    onPress={() => {
-                      if (isEditingEmail) {
-                        handleSaveProfile();
-                      } else {
-                        setIsEditingEmail(true);
-                      }
-                    }}
-                    disabled={isUpdatePending}
-                    className="p-3"
-                  >
-                    <MaterialIcons
-                      name={isEditingEmail ? 'save' : 'edit'}
-                      size={RFValue(isLandscape ? 20 : 24)}
-                      color={isUpdatePending ? '#A0A0A0' : '#374151'}
-                    />
-                  </TouchableOpacity>
+
                 </View>
               </LinearGradient>
               {errors.email && (
@@ -278,9 +314,83 @@ const ProfileScreen: React.FC = () => {
               )}
             </View>
 
+            {/* Password Change Section */}
+            {isEditingPassword && (
+              <>
+                {/* Old Password Field */}
+                <View className={`w-full max-w-md ${isLandscape ? 'mb-2' : 'mb-6'}`}>
+                  <Text className="text-gray-600 text-sm mb-2">Old Password</Text>
+                  <LinearGradient
+                    colors={['#A855F7', '#F472B6']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    className="rounded-full p-[2px]"
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <View className="flex-row items-center bg-white rounded-full">
+                      <TextInput
+                        className={`flex-1 text-black ${isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'}`}
+                        placeholder="Old Password"
+                        placeholderTextColor="#9CA3AF"
+                        value={passwordData.oldPassword}
+                        onChangeText={(text) => handlePasswordChange('oldPassword', text)}
+                        secureTextEntry
+                        autoCapitalize="none"
+                      />
+                    </View>
+                  </LinearGradient>
+                  {errors.oldPassword && (
+                    <Text className="text-red-500 text-xs mt-1 text-center">{errors.oldPassword}</Text>
+                  )}
+                </View>
+
+                {/* New Password Field */}
+                <View className={`w-full max-w-md ${isLandscape ? 'mb-2' : 'mb-6'}`}>
+                  <Text className="text-gray-600 text-sm mb-2">New Password</Text>
+                  <LinearGradient
+                    colors={['#A855F7', '#F472B6']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    className="rounded-full p-[2px]"
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <View className="flex-row items-center bg-white rounded-full">
+                      <TextInput
+                        className={`flex-1 text-black ${isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'}`}
+                        placeholder="New Password"
+                        placeholderTextColor="#9CA3AF"
+                        value={passwordData.newPassword}
+                        onChangeText={(text) => handlePasswordChange('newPassword', text)}
+                        secureTextEntry
+                        autoCapitalize="none"
+                      />
+                    </View>
+                  </LinearGradient>
+                  {errors.newPassword && (
+                    <Text className="text-red-500 text-xs mt-1 text-center">{errors.newPassword}</Text>
+                  )}
+                </View>
+              </>
+            )}
+
+            {/* Change Password Button */}
+            <View className="w-full max-w-md mt-4 items-center">
+              <Button
+                title={isEditingPassword ? 'Save Password' : 'Change Password'}
+                onPress={() => {
+                  if (isEditingPassword) {
+                    handleChangePassword();
+                  } else {
+                    setIsEditingPassword(true);
+                  }
+                }}
+                isLandscape={isLandscape}
+              />
+            </View>
+
             {/* General Error */}
             {errors.general && (
-              <Text className="text-red-500 text-xs mb-4 text-center">{errors.general}</Text>
+              <Text className="text-red-500 text-xs mt-4 text-center">{errors.general}</Text>
             )}
 
             {/* Settings Button */}
@@ -310,7 +420,7 @@ const ProfileScreen: React.FC = () => {
         </Animated.ScrollView>
       </KeyboardAvoidingView>
 
-      <StatusBar style="dark" />
+      <StatusBar style="dark" translucent={false} />
     </SafeAreaView>
   );
 };

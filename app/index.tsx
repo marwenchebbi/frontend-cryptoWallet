@@ -1,7 +1,7 @@
 import { View, Text, Image } from "react-native";
 import Button from "../components/Button";
-import AppLockScreen from "./screens/AppLockScreen";
-import CryptoWalletScreen from "./screens/CryptoWalletScreen";
+import AppLockScreen from "./screens/app-lock.screen";
+import CryptoWalletScreen from "./screens/splash.screen";
 
 
 

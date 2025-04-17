@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { LoginData, LoginResponse, ErrorResponse } from '../../models/types';
 
 const loginUser = async (data: LoginData): Promise<LoginResponse> => {
-  const url = 'http://192.168.1.14:3000/auth/login';
+  const url = 'http://192.168.11.38:3000/auth/login';
   const res = await fetch(url, {
     method: 'POST',
     headers: {

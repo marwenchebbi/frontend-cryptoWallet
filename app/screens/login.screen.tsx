@@ -25,9 +25,11 @@ import Button from '@/components/Button';
 import * as SecureStore from 'expo-secure-store'
 import { validateForm } from '../validators/helpers';
 import { loginSchema } from '../validators/auth.validator';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const LoginScreen: React.FC = () => {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState<LoginData>({
     email: '',
@@ -79,6 +81,12 @@ const LoginScreen: React.FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
+                          <View
+        className="absolute top-0 left-0 right-0 z-40 bg-transparent "
+        style={{ paddingTop: insets.top }}
+      >
+        <Header title="Profile" onBackPress={handleBack} isLandscape={isLandscape} backEnabled={true} historyEnabled ={false}/>
+      </View>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
@@ -88,7 +96,7 @@ const LoginScreen: React.FC = () => {
           contentContainerStyle={{ flexGrow: 1 }}
           keyboardShouldPersistTaps="handled"
         >
-          <Header title="Login" onBackPress={handleBack} isLandscape={isLandscape} />
+
 
           <View className={`flex-1 justify-center items-center ${isLandscape ? 'px-6' : 'px-4'}`}>
             {/* Email Input */}
@@ -165,7 +173,7 @@ const LoginScreen: React.FC = () => {
             {isPending && <ActivityIndicator size="small" color="#A855F7" />}
 
             {/* "I don't have an account" Link */}
-            <TouchableOpacity onPress={() => router.push('/screens/SignupScreen')}>
+            <TouchableOpacity onPress={() => router.push('/screens/signup.screen')}>
               <Text className={`text-gray-600 ${isLandscape ? 'text-xs mb-4' : 'text-sm mb-6'}`}>
                 I don’t have an account
               </Text>
@@ -192,7 +200,7 @@ const LoginScreen: React.FC = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      <StatusBar style="light" />
+      <StatusBar style="light" translucent={false} />
     </SafeAreaView>
   );
 };

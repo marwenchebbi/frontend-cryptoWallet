@@ -9,7 +9,7 @@ const logout = async (): Promise<LogoutResponse> => {
     throw new Error('No access token found');
   }
 
-  const response = await fetch('http://192.168.1.14:3000/auth/logout', {
+  const response = await fetch('http://192.168.11.38:3000/auth/logout', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
