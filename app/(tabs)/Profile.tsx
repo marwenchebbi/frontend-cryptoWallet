@@ -1,3 +1,4 @@
+// screens/profile.screen.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -8,16 +9,18 @@ import {
   ScrollView,
   Platform,
   RefreshControl,
-  Alert,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import { MaterialIcons } from '@expo/vector-icons';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RFValue } from 'react-native-responsive-fontsize';
+
+
 
 // Custom hooks
 import { useOrientation } from '../hooks/shared/useOrientation';
@@ -26,17 +29,20 @@ import { useGetUserInfo } from '../hooks/auth-hooks/user-info.hooks';
 import { useLogout } from '../hooks/auth-hooks/logout.hooks';
 import { useUpdateProfile } from '../hooks/auth-hooks/update-profile.hooks';
 import { useChangePassword } from '../hooks/auth-hooks/change-password.hooks';
-import { UserFormData } from '../models/types';
 
 // Components
-import Header from '@/components/Header';
-import Button from '@/components/Button';
+import Header from '@/app/components/Header';
+import Button from '@/app/components/Button';
+import SuccessModal from '../components/SuccessModal';
+import { UserFormData } from '../models/user';
 
 const ProfileScreen: React.FC = () => {
   const router = useRouter();
   const isLandscape = useOrientation();
   const handleBack = useHandleBack();
   const insets = useSafeAreaInsets();
+
+    const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
 
   // Form state for editable user info
   const [formData, setFormData] = useState<UserFormData>({
@@ -49,11 +55,11 @@ const ProfileScreen: React.FC = () => {
     newPassword: '',
   });
   const [isEditingName, setIsEditingName] = useState(false);
- // const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [isEditingPassword, setIsEditingPassword] = useState(false);
   const [errors, setErrors] = useState<
     Partial<UserFormData & { oldPassword: string; newPassword: string; general: string }>
   >({});
+
 
   // Fetch user info
   const {
@@ -71,6 +77,9 @@ const ProfileScreen: React.FC = () => {
 
   // Change password mutation
   const { mutate: changePasswordMutate, isPending: isChangePasswordPending } = useChangePassword();
+
+  //modal message 
+const [successMessage,setSuccessMessage]= useState<string>('Success')
 
   // Initialize form data when user info loads
   useEffect(() => {
@@ -105,8 +114,8 @@ const ProfileScreen: React.FC = () => {
     updateProfileMutate(formData, {
       onSuccess: () => {
         setIsEditingName(false);
-        Alert.alert('Success', 'Profile updated successfully');
-        userRefetch();
+        setIsSuccessModalVisible(true); // Show success modal
+        setSuccessMessage('Name changed successfully! 😎 ')
       },
       onError: (error: { message: string }) => {
         try {
@@ -125,15 +134,15 @@ const ProfileScreen: React.FC = () => {
       onSuccess: () => {
         setIsEditingPassword(false);
         setPasswordData({ oldPassword: '', newPassword: '' });
-        Alert.alert('Success', 'Password changed successfully. Please log in again.');
-        router.replace('/screens/login.screen');
+        setIsSuccessModalVisible(true); // Show success modal
+        setSuccessMessage('Password changed successfully! 😎 ')
       },
       onError: (error: { message: string }) => {
         try {
           const validationErrors = JSON.parse(error.message);
           setErrors(validationErrors);
         } catch {
-          setErrors({ general: error.message || 'Failed to change password' });
+          setErrors({ general: error.message || 'Failed to change password! 😎 ' });
         }
       },
     });
@@ -143,11 +152,11 @@ const ProfileScreen: React.FC = () => {
   const handleLogout = () => {
     logoutMutate(undefined, {
       onSuccess: () => {
-        router.replace('/screens/login.screen');
-        Alert.alert('Success', 'You have been logged out');
+        setIsSuccessModalVisible(true); // Show success modal
+        setSuccessMessage('Déconnexion Réussie! 😎 ')
       },
       onError: (error) => {
-        Alert.alert('Error', error.message || 'Failed to log out');
+        setErrors({ general: error.message || 'Failed to log out' });
       },
     });
   };
@@ -176,7 +185,9 @@ const ProfileScreen: React.FC = () => {
   if (isUserLoading) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-white">
-        <Text className="text-gray-600 text-lg">Loading profile...</Text>
+        <Animated.View entering={FadeIn.duration(600)}>
+          <Text className="text-gray-600 text-lg">Loading profile...</Text>
+        </Animated.View>
       </SafeAreaView>
     );
   }
@@ -185,7 +196,9 @@ const ProfileScreen: React.FC = () => {
   if (userError) {
     return (
       <SafeAreaView className="flex-1 bg-white justify-center items-center">
-        <Text className="text-red-500 text-lg">Error: {userError.message}</Text>
+        <Animated.View entering={FadeIn.duration(600)}>
+          <Text className="text-red-500 text-lg">Error: {userError.message}</Text>
+        </Animated.View>
       </SafeAreaView>
     );
   }
@@ -193,18 +206,41 @@ const ProfileScreen: React.FC = () => {
   // Estimate tab bar height
   const tabBarHeight = 50 + insets.bottom;
 
-  // Estimate header height (adjust based on your Header component's actual height)
-  const headerHeight = isLandscape ? 60 : 80; // You may need to adjust this value
+  // Estimate header height
+  const headerHeight = isLandscape ? 60 : 80;
 
   return (
-    <SafeAreaView className="flex-1  bg-white">
+    <SafeAreaView className="flex-1 bg-white">
       {/* Fixed Header */}
-      <View
+      <Animated.View
+        entering={FadeIn.duration(600)}
         className="absolute top-0 left-0 right-0 z-50 bg-transparent"
         style={{ paddingTop: insets.top }}
       >
-        <Header title="Profile" onBackPress={handleBack} isLandscape={isLandscape} backEnabled={false} historyEnabled={false} />
-      </View>
+        <Header
+          title="Profile"
+          onBackPress={handleBack}
+          isLandscape={isLandscape}
+          backEnabled={false}
+          historyEnabled={false}
+        />
+
+        {/* Logout Button */}
+        {(!isEditingName || !isEditingPassword) && (
+          <Animated.View
+            entering={FadeInDown.duration(600).delay(900)}
+            className="mt-auto py-4 items-end px-8"
+          >
+            <TouchableOpacity onPress={handleLogout} disabled={isLogoutPending}>
+              <Ionicons
+                name="log-out"
+                size={RFValue(28)}
+                style={{ color: '#9CA3AF', opacity: 0.75 }}
+              />
+            </TouchableOpacity>
+          </Animated.View>
+        )}
+      </Animated.View>
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -216,33 +252,48 @@ const ProfileScreen: React.FC = () => {
         <Animated.ScrollView
           contentContainerStyle={{
             flexGrow: 1,
-            paddingTop: headerHeight + insets.top, // Prevent content from being hidden under header
+            paddingTop: headerHeight + insets.top,
             paddingBottom: tabBarHeight + 40,
           }}
           keyboardShouldPersistTaps="handled"
-          refreshControl={<RefreshControl refreshing={isUserLoading} onRefresh={updateData} tintColor={'red'}/>}
+          refreshControl={<RefreshControl refreshing={isUserLoading} onRefresh={updateData} />}
         >
           {/* QR Code Section */}
-          <View className="items-center mt-6">
+          <Animated.View entering={FadeInDown.duration(600).delay(200)} className="items-center mt-6">
             {userInfo?.walletAddress ? (
               <Animated.Image
-                entering={FadeIn}
-                exiting={FadeOut}
+                entering={FadeIn.duration(600).delay(300)}
                 source={{
                   uri: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${userInfo.walletAddress}`,
                 }}
                 className="w-40 h-40 rounded-lg"
               />
             ) : (
-              <Text className="text-gray-500 text-sm">No wallet address available</Text>
+              <Animated.Text
+                entering={FadeIn.duration(600).delay(300)}
+                className="text-gray-500 text-sm"
+              >
+                No wallet address available
+              </Animated.Text>
             )}
-            <Text className="text-gray-600 text-xs mt-2">Your wallet QR code</Text>
-          </View>
+            <Animated.Text
+              entering={FadeInDown.duration(600).delay(400)}
+              className="text-gray-600 text-xs mt-2"
+            >
+              Your wallet QR code
+            </Animated.Text>
+          </Animated.View>
 
           {/* Profile Form */}
-          <View className="flex-1 items-center mt-8 px-4">
+          <Animated.View
+            entering={FadeInDown.duration(600).delay(500)}
+            className="flex-1 items-center mt-8 px-4"
+          >
             {/* Name Field */}
-            <View className={`w-full max-w-md ${isLandscape ? 'mb-2' : 'mb-6'}`}>
+            <Animated.View
+              entering={FadeInDown.duration(600).delay(600)}
+              className={`w-full max-w-md ${isLandscape ? 'mb-2' : 'mb-6'}`}
+            >
               <Text className="text-gray-600 text-sm mb-2">Name</Text>
               <LinearGradient
                 colors={['#A855F7', '#F472B6']}
@@ -253,7 +304,9 @@ const ProfileScreen: React.FC = () => {
               >
                 <View className="flex-row items-center bg-white rounded-full">
                   <TextInput
-                    className={`flex-1 text-black ${isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'}`}
+                    className={`flex-1 text-black ${
+                      isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
+                    }`}
                     placeholder="Name"
                     placeholderTextColor="#9CA3AF"
                     value={formData.name}
@@ -281,12 +334,20 @@ const ProfileScreen: React.FC = () => {
                 </View>
               </LinearGradient>
               {errors.name && (
-                <Text className="text-red-500 text-xs mt-1 text-center">{errors.name}</Text>
+                <Animated.Text
+                  entering={FadeIn.duration(600).delay(700)}
+                  className="text-red-500 text-xs mt-1 text-center"
+                >
+                  {errors.name}
+                </Animated.Text>
               )}
-            </View>
+            </Animated.View>
 
             {/* Email Field */}
-            <View className={`w-full max-w-md ${isLandscape ? 'mb-2' : 'mb-6'}`}>
+            <Animated.View
+              entering={FadeInDown.duration(600).delay(800)}
+              className={`w-full max-w-md ${isLandscape ? 'mb-2' : 'mb-6'}`}
+            >
               <Text className="text-gray-600 text-sm mb-2">Email</Text>
               <LinearGradient
                 colors={['#A855F7', '#F472B6']}
@@ -297,28 +358,37 @@ const ProfileScreen: React.FC = () => {
               >
                 <View className="flex-row items-center bg-white rounded-full">
                   <TextInput
-                    className={`flex-1 text-black ${isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'}`}
+                    className={`flex-1 text-black ${
+                      isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
+                    }`}
                     placeholder="Email"
                     placeholderTextColor="#9CA3AF"
                     value={formData.email}
                     onChangeText={(text) => handleInputChange('email', text)}
-                    editable= {false}
+                    editable={false}
                     keyboardType="email-address"
                     autoCapitalize="none"
                   />
-
                 </View>
               </LinearGradient>
               {errors.email && (
-                <Text className="text-red-500 text-xs mt-1 text-center">{errors.email}</Text>
+                <Animated.Text
+                  entering={FadeIn.duration(600).delay(900)}
+                  className="text-red-500 text-xs mt-1 text-center"
+                >
+                  {errors.email}
+                </Animated.Text>
               )}
-            </View>
+            </Animated.View>
 
             {/* Password Change Section */}
             {isEditingPassword && (
               <>
                 {/* Old Password Field */}
-                <View className={`w-full max-w-md ${isLandscape ? 'mb-2' : 'mb-6'}`}>
+                <Animated.View
+                  entering={FadeInDown.duration(600).delay(1000)}
+                  className={`w-full max-w-md ${isLandscape ? 'mb-2' : 'mb-6'}`}
+                >
                   <Text className="text-gray-600 text-sm mb-2">Old Password</Text>
                   <LinearGradient
                     colors={['#A855F7', '#F472B6']}
@@ -329,7 +399,9 @@ const ProfileScreen: React.FC = () => {
                   >
                     <View className="flex-row items-center bg-white rounded-full">
                       <TextInput
-                        className={`flex-1 text-black ${isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'}`}
+                        className={`flex-1 text-black ${
+                          isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
+                        }`}
                         placeholder="Old Password"
                         placeholderTextColor="#9CA3AF"
                         value={passwordData.oldPassword}
@@ -340,12 +412,20 @@ const ProfileScreen: React.FC = () => {
                     </View>
                   </LinearGradient>
                   {errors.oldPassword && (
-                    <Text className="text-red-500 text-xs mt-1 text-center">{errors.oldPassword}</Text>
+                    <Animated.Text
+                      entering={FadeIn.duration(600).delay(1100)}
+                      className="text-red-500 text-xs mt-1 text-center"
+                    >
+                      {errors.oldPassword}
+                    </Animated.Text>
                   )}
-                </View>
+                </Animated.View>
 
                 {/* New Password Field */}
-                <View className={`w-full max-w-md ${isLandscape ? 'mb-2' : 'mb-6'}`}>
+                <Animated.View
+                  entering={FadeInDown.duration(600).delay(1200)}
+                  className={`w-full max-w-md ${isLandscape ? 'mb-2' : 'mb-6'}`}
+                >
                   <Text className="text-gray-600 text-sm mb-2">New Password</Text>
                   <LinearGradient
                     colors={['#A855F7', '#F472B6']}
@@ -356,7 +436,9 @@ const ProfileScreen: React.FC = () => {
                   >
                     <View className="flex-row items-center bg-white rounded-full">
                       <TextInput
-                        className={`flex-1 text-black ${isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'}`}
+                        className={`flex-1 text-black ${
+                          isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
+                        }`}
                         placeholder="New Password"
                         placeholderTextColor="#9CA3AF"
                         value={passwordData.newPassword}
@@ -367,14 +449,22 @@ const ProfileScreen: React.FC = () => {
                     </View>
                   </LinearGradient>
                   {errors.newPassword && (
-                    <Text className="text-red-500 text-xs mt-1 text-center">{errors.newPassword}</Text>
+                    <Animated.Text
+                      entering={FadeIn.duration(600).delay(1300)}
+                      className="text-red-500 text-xs mt-1 text-center"
+                    >
+                      {errors.newPassword}
+                    </Animated.Text>
                   )}
-                </View>
+                </Animated.View>
               </>
             )}
 
             {/* Change Password Button */}
-            <View className="w-full max-w-md mt-4 items-center">
+            <Animated.View
+              entering={FadeInDown.duration(600).delay(1400)}
+              className="w-full max-w-md mt-4 items-center"
+            >
               <Button
                 title={isEditingPassword ? 'Save Password' : 'Change Password'}
                 onPress={() => {
@@ -386,41 +476,42 @@ const ProfileScreen: React.FC = () => {
                 }}
                 isLandscape={isLandscape}
               />
-            </View>
+            </Animated.View>
 
             {/* General Error */}
             {errors.general && (
-              <Text className="text-red-500 text-xs mt-4 text-center">{errors.general}</Text>
+              <Animated.Text
+                entering={FadeIn.duration(600).delay(1500)}
+                className="text-red-500 text-xs mt-4 text-center"
+              >
+                {errors.general}
+              </Animated.Text>
             )}
 
             {/* Settings Button */}
-            <View className="w-full max-w-md mt-4 items-center">
-              <Button
-                title="Settings"
-                onPress={handleSettings}
-                isLandscape={isLandscape}
-              />
-            </View>
-
-            {/* Logout Button */}
-            <TouchableOpacity
-              onPress={handleLogout}
-              disabled={isLogoutPending}
-              className="mt-auto py-4"
+            <Animated.View
+              entering={FadeInDown.duration(600).delay(1600)}
+              className="w-full max-w-md mt-4 items-center"
             >
-              <Text
-                className={`text-gray-600 underline text-center ${
-                  isLogoutPending ? 'text-gray-400' : 'text-gray-600'
-                } ${isLandscape ? 'text-sm' : 'text-base'}`}
-              >
-                {isLogoutPending ? 'Logging out...' : 'Log Out'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+              <Button title="Settings" onPress={handleSettings} isLandscape={isLandscape} />
+            </Animated.View>
+          </Animated.View>
         </Animated.ScrollView>
       </KeyboardAvoidingView>
 
-      <StatusBar style="dark" translucent={false} />
+      {/* Success Modal */}
+      <SuccessModal
+        isVisible={isSuccessModalVisible}
+        title="Opération Réussie !"
+        message={`${successMessage} 😎`}
+        onClose={() => {
+          setIsSuccessModalVisible(false);
+          router.push('/screens/login.screen');
+        }}
+        duration={2000}
+      />
+
+      <StatusBar style="dark" translucent={false} backgroundColor="white" />
     </SafeAreaView>
   );
 };

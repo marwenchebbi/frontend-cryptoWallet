@@ -1,10 +1,11 @@
 // hooks/useSignup.ts
 import { useMutation } from '@tanstack/react-query';
-import { SignupData } from '../../models/types';
+import { IP_ADDRESS } from '../../models/types';
+import { SignupData } from '@/app/models/auth';
 
 
 const signupUser = async (data: SignupData): Promise<boolean> => {
-  const url = 'http://192.168.11.38:3000/auth/signup';
+  const url = `http://${IP_ADDRESS}:3000/auth/signup`;
   const res = await fetch(url, {
     method: 'POST',
     headers: {

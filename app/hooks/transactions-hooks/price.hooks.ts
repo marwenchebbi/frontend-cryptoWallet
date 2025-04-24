@@ -1,7 +1,8 @@
+import { IP_ADDRESS } from "@/app/models/types";
 import { useQuery } from "@tanstack/react-query";
 
 const getPrice = async (): Promise<number> => {
-  const url = 'http://192.168.11.38:3000/transaction/price' 
+  const url = `http://${IP_ADDRESS}:3000/transaction/price` 
   const res = await fetch(url, {
     method: 'GET',
     headers: {

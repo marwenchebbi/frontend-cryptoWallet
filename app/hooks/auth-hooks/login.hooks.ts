@@ -1,10 +1,12 @@
 // hooks/useLogin.ts
 import { useMutation } from '@tanstack/react-query';
-
-import { LoginData, LoginResponse, ErrorResponse } from '../../models/types';
+import {  IP_ADDRESS } from '../../models/types';
+import { LoginData, LoginResponse } from '@/app/models/auth';
+import { ErrorResponse } from '@/app/models/error';
 
 const loginUser = async (data: LoginData): Promise<LoginResponse> => {
-  const url = 'http://192.168.11.38:3000/auth/login';
+  console.log(IP_ADDRESS)
+  const url = `http://${IP_ADDRESS}:3000/auth/login`;
   const res = await fetch(url, {
     method: 'POST',
     headers: {

@@ -16,16 +16,24 @@ const Button: React.FC<ButtonProps> = ({
   isLandscape 
 }) => {
   return (
-    <TouchableOpacity
-      className={`bg-purple-200 rounded-full ${
-        width === 'full' ? 'max-w-md w-full' : 'w-auto'
-      } ${isLandscape ? 'py-2' : 'py-3'} m-3`}
+    <TouchableOpacity className='bg-purple-200'
+      style={{
+        borderRadius: 999,
+        paddingVertical: isLandscape ? 6 : 10,
+        paddingHorizontal: isLandscape ? 14 : 20,
+        ...(width === 'full' ? { maxWidth: 448, width: '100%' } : { width: 'auto' }),
+        
+      }}
       onPress={onPress}
     >
       <Text
-        className={`text-black font-medium w-full text-center ${
-          isLandscape ? 'text-sm' : 'text-base'
-        }`}
+        style={{
+          color: 'black',
+          fontWeight: '500',
+          fontSize: RFValue(isLandscape ? 12 : 14),
+          textAlign: 'center',
+          width: '100%',
+        }}
       >
         {title}
       </Text>

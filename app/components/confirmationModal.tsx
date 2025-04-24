@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RFValue } from 'react-native-responsive-fontsize';
-import Button from '@/components/Button'; // Adjust the import path as needed
+import Button from '@/app/components/Button'; // Adjust the import path as needed
 
 interface ConfirmationModalProps {
   visible: boolean;

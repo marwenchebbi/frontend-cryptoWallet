@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';
 import { profileSchema } from '../../validators/auth.validator';
 import { validateForm } from '../../validators/helpers';
-import { UpdateProfileData, UpdateProfileResponse } from '@/app/models/types';
+import { IP_ADDRESS, UpdateProfileData, UpdateProfileResponse } from '@/app/models/types';
 
 
 const updateProfile = async (data: UpdateProfileData): Promise<UpdateProfileResponse> => {
@@ -18,7 +18,7 @@ const updateProfile = async (data: UpdateProfileData): Promise<UpdateProfileResp
     throw new Error('No access token found');
   }
 
-  const response = await fetch('http://192.168.11.38:3000/auth/me', {
+  const response = await fetch(`http://${IP_ADDRESS}:3000/auth/me`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',

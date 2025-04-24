@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,15 +13,16 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 // Custom hooks
 import { useOrientation } from '../hooks/shared/useOrientation';
 import { useHandleBack } from '../hooks/shared/useHandleBack';
 
 // UI Components
-import Header from '@/components/Header';
-import Button from '@/components/Button';
-import BalanceDetails from '@/components/BalancesDetails';
+import Header from '@/app/components/Header';
+import Button from '@/app/components/Button';
+import BalanceDetails from '@/app/components/BalancesDetails';
 
 // Utilities and validation
 import * as SecureStore from 'expo-secure-store';
@@ -34,15 +35,18 @@ import { useGetWalletInfo } from '../hooks/wallet-info-hooks/balances.hooks';
 import { useGetPrice } from '../hooks/transactions-hooks/price.hooks';
 
 // Types and modals
-import { TransactionType, TransferData } from '../models/types';
-import ConfirmationModal from '../modals/confirmationModal';
+
+import ConfirmationModal from '../components/confirmationModal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useBiometricAuth } from '../hooks/shared/useBiometricAuth';
+import { TransactionType, TransferData } from '../models/transaction';
 
 const Exchange: React.FC = () => {
   const isLandscape = useOrientation();
   const handleBack = useHandleBack();
   const insets = useSafeAreaInsets();
+  const { isBiometricSupported, authenticate, error: biometricError } = useBiometricAuth(); // Added
 
   // Form state
   const [formData, setFormData] = useState<TransferData>({
@@ -62,10 +66,18 @@ const Exchange: React.FC = () => {
   const { mutate, isPending, error } = tradeType === 'buy' ? useBuyPRX() : useSellPRX();
 
   // Fetch wallet and price data
-  const { data: walletInfo, isLoading: isWalletLoading, error: walletError, refetch: walletRefetch } = useGetWalletInfo(
-    formData.senderAddress
-  );
-  const { data: priceInfo, isLoading: isPriceLoading, error: priceError, refetch: priceRefetch } = useGetPrice();
+  const {
+    data: walletInfo,
+    isLoading: isWalletLoading,
+    error: walletError,
+    refetch: walletRefetch,
+  } = useGetWalletInfo(formData.senderAddress);
+  const {
+    data: priceInfo,
+    isLoading: isPriceLoading,
+    error: priceError,
+    refetch: priceRefetch,
+  } = useGetPrice();
 
   // Fetch wallet address from secure storage
   const fetchSenderAddress = async () => {
@@ -77,30 +89,27 @@ const Exchange: React.FC = () => {
     }
   };
 
-  // Display the equivalent amount message based on trade type and input currency
-  const displayEquivalentAmount = (equivalentAmount: string, inputCurrency: 'USDT' | 'PRX'): string => {
-    // Buying PRX
-    if (tradeType === 'buy') {
-      return inputCurrency === 'USDT'
-        ? `You will receive ≈ ${equivalentAmount} PRX` // Paying with USDT to get PRX
-        : `You will spend ≈ ${equivalentAmount} USDT`; // Specifying PRX to buy with USDT
-    }
-    // Selling PRX
-    else {
-      return inputCurrency === 'USDT'
-        ? `You will spend ≈ ${equivalentAmount} PRX`   // Specifying USDT to get PRX (sell PRX)
-        : `You will receive ≈ ${equivalentAmount} USDT`; // Selling PRX to get USDT
-    }
-  };
-  React.useEffect(() => {
+  useEffect(() => {
     fetchSenderAddress();
   }, []);
+
+  // Display the equivalent amount message based on trade type and input currency
+  const displayEquivalentAmount = (equivalentAmount: string, inputCurrency: 'USDT' | 'PRX'): string => {
+    if (tradeType === 'buy') {
+      return inputCurrency === 'USDT'
+        ? `You will receive ≈ ${equivalentAmount} PRX`
+        : `You will spend ≈ ${equivalentAmount} USDT`;
+    } else {
+      return inputCurrency === 'USDT'
+        ? `You will spend ≈ ${equivalentAmount} PRX`
+        : `You will receive ≈ ${equivalentAmount} USDT`;
+    }
+  };
 
   // Handle input field changes
   const handleInputChange = (field: keyof TransferData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setErrors({});
-
   };
 
   // Calculate equivalent amount using priceInfo
@@ -109,12 +118,9 @@ const Exchange: React.FC = () => {
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount)) return '0';
 
-
     if (formData.inputCurrency === 'PRX') {
-      // PRX to USDT
       return (parsedAmount * priceInfo).toFixed(6);
     } else {
-      // USDT to PRX
       return (parsedAmount / priceInfo).toFixed(6);
     }
   };
@@ -124,14 +130,19 @@ const Exchange: React.FC = () => {
     const equivalent = calculateEquivalent(formData.amount);
     const updatedFormData = {
       ...formData,
-      receivedAmount: equivalent, // Add received amount to formData for backend
+      receivedAmount: equivalent,
     };
 
     mutate(updatedFormData, {
       onSuccess: async (success: boolean) => {
         if (success) {
           setConfirmModalVisible(false);
-          setFormData({ amount: '', senderAddress: formData.senderAddress, receiverAddress: '', inputCurrency: 'USDT' });
+          setFormData({
+            amount: '',
+            senderAddress: formData.senderAddress,
+            receiverAddress: '',
+            inputCurrency: 'USDT',
+          });
         }
       },
       onError: (err: any) => {
@@ -147,36 +158,52 @@ const Exchange: React.FC = () => {
     walletRefetch();
   };
 
-  // Handle validation and show confirmation modal
+  // Handle validation, biometric auth, and show confirmation modal
   const handleTrade = async () => {
     const { errors, success } = await validateForm(formData, transcationSchema);
-    if (success) {
-      if (!formData.senderAddress) {
-        setErrors((prev) => ({ ...prev, senderAddress: 'Sender address is required' }));
-        return;
-      }
-      if (!formData.amount || parseFloat(formData.amount) <= 0) {
-        setErrors((prev) => ({ ...prev, amount: 'Please enter a valid amount' }));
-        return;
-      }
-      setConfirmModalVisible(true);
-    } else {
+    if (!success) {
       setErrors(errors);
+      return;
     }
+
+    if (!formData.senderAddress) {
+      setErrors((prev) => ({ ...prev, senderAddress: 'Sender address is required' }));
+      return;
+    }
+    if (!formData.amount || parseFloat(formData.amount) <= 0) {
+      setErrors((prev) => ({ ...prev, amount: 'Please enter a valid amount' }));
+      return;
+    }
+
+    if (isBiometricSupported) {
+      const isAuthenticated = await authenticate();
+      if (!isAuthenticated) {
+        setErrors({ amount: biometricError || 'Biometric verification failed' });
+        return;
+      }
+    }
+
+    setConfirmModalVisible(true);
   };
 
+  // Loading state
   if (isWalletLoading) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-white">
-        <Text>Loading wallet information...</Text>
+        <Animated.View entering={FadeIn.duration(600)}>
+          <Text>Loading wallet information...</Text>
+        </Animated.View>
       </SafeAreaView>
     );
   }
 
+  // Error state
   if (walletError) {
     return (
       <SafeAreaView className="flex-1 bg-white">
-        <Text className="text-red-500">Error: {walletError.message}</Text>
+        <Animated.View entering={FadeIn.duration(600)}>
+          <Text className="text-red-500">Error: {walletError.message}</Text>
+        </Animated.View>
       </SafeAreaView>
     );
   }
@@ -184,51 +211,63 @@ const Exchange: React.FC = () => {
   const outputCurrency = tradeType === 'buy' ? 'PRX' : 'USDT';
   const equivalentAmount = calculateEquivalent(formData.amount);
 
-  const handleHistoryIcon = () =>{
+  const handleHistoryIcon = () => {
     router.push({
       pathname: '/screens/history.screen',
       params: { transactionType: TransactionType.TRADING },
     });
-  }
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-
-      <View
-        className="absolute top-0 left-0 right-0 z-40 bg-transparent "
+      <Animated.View
+        entering={FadeIn.duration(600)}
+        className="absolute top-0 left-0 right-0 z-40 bg-transparent"
         style={{ paddingTop: insets.top }}
       >
-        <Header title="Exchange" onHistoryPress={handleHistoryIcon} isLandscape={isLandscape} backEnabled={false} historyEnabled={true}/>
-      </View>
+        <Header
+          title="Exchange"
+          onHistoryPress={handleHistoryIcon}
+          isLandscape={isLandscape}
+          backEnabled={false}
+          historyEnabled={true}
+        />
+      </Animated.View>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', zIndex: 50 }}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
           keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl refreshing={isWalletLoading || isPriceLoading} onRefresh={updateWalletData} />
           }
         >
-          <View className='mt-20'></View>
-          <BalanceDetails
-            walletInfo={walletInfo}
-            selectedBalance={selectedBalance}
-            onToggleBalance={() => setSelectedBalance(selectedBalance === 'Proxym' ? 'USDT' : 'Proxym')}
-            isLandscape={isLandscape}
-            price={priceInfo ?? 0}
-          />
-          <View className="mt-4 p-2 bg-white rounded">
+          <Animated.View entering={FadeInDown.duration(600).delay(200)} className="mt-20">
+            <BalanceDetails
+              walletInfo={walletInfo}
+              selectedBalance={selectedBalance}
+              onToggleBalance={() =>
+                setSelectedBalance(selectedBalance === 'Proxym' ? 'USDT' : 'Proxym')
+              }
+              isLandscape={isLandscape}
+              price={priceInfo ?? 0}
+            />
+          </Animated.View>
+
+          <Animated.View entering={FadeInDown.duration(600).delay(300)} className="mt-4 p-2 bg-white rounded">
             {!isWalletLoading && (
               <Text className="text-pink-700 text-sm text-center">
                 Swipe down to refresh your balance details
               </Text>
             )}
-          </View>
+          </Animated.View>
 
-          <View className="flex-1 items-center justify-center my-8">
+          <View
+            className="flex-1 items-center justify-center my-8"
+          >
             <LinearGradient
               colors={['#A855F7', '#F472B6']}
               start={{ x: 0, y: 0 }}
@@ -238,12 +277,16 @@ const Exchange: React.FC = () => {
             >
               <View className="bg-white rounded-3xl p-6" style={styles.exchangeContainer}>
                 {/* Trade Type Toggle */}
-                <View className="flex-row bg-gray-200 rounded-full p-1 mb-6">
+                <Animated.View entering={FadeInDown.duration(600).delay(500)} className="flex-row bg-gray-200 rounded-full p-1 mb-6">
                   <TouchableOpacity
                     className={`flex-1 py-2 rounded-full ${tradeType === 'buy' ? 'bg-black' : ''}`}
                     onPress={() => setTradeType('buy')}
                   >
-                    <Text className={`text-center font-semibold ${tradeType === 'buy' ? 'text-white' : 'text-black'}`}>
+                    <Text
+                      className={`text-center font-semibold ${
+                        tradeType === 'buy' ? 'text-white' : 'text-black'
+                      }`}
+                    >
                       Buy PRX
                     </Text>
                   </TouchableOpacity>
@@ -251,39 +294,58 @@ const Exchange: React.FC = () => {
                     className={`flex-1 py-2 rounded-full ${tradeType === 'sell' ? 'bg-black' : ''}`}
                     onPress={() => setTradeType('sell')}
                   >
-                    <Text className={`text-center font-semibold ${tradeType === 'sell' ? 'text-white' : 'text-black'}`}>
+                    <Text
+                      className={`text-center font-semibold ${
+                        tradeType === 'sell' ? 'text-white' : 'text-black'
+                      }`}
+                    >
                       Sell PRX
                     </Text>
                   </TouchableOpacity>
-                </View>
+                </Animated.View>
 
                 {/* Input Currency Toggle */}
-                <View className="p-2 bg-white rounded">
+                <Animated.View entering={FadeInDown.duration(600).delay(600)} className="p-2 bg-white rounded">
                   {!isWalletLoading && (
                     <Text className="text-gray-500 text-center">Choose the Currency to trade with</Text>
                   )}
-                </View>
-                <View className="flex-row bg-gray-200 rounded-full p-1 mb-6">
+                </Animated.View>
+                <Animated.View
+                  entering={FadeInDown.duration(600).delay(700)}
+                  className="flex-row bg-gray-200 rounded-full p-1 mb-6"
+                >
                   <TouchableOpacity
-                    className={`flex-1 py-2 rounded-full ${formData.inputCurrency === 'USDT' ? 'bg-black' : ''}`}
+                    className={`flex-1 py-2 rounded-full ${
+                      formData.inputCurrency === 'USDT' ? 'bg-black' : ''
+                    }`}
                     onPress={() => handleInputChange('inputCurrency', 'USDT')}
                   >
-                    <Text className={`text-center font-semibold ${formData.inputCurrency === 'USDT' ? 'text-white' : 'text-black'}`}>
+                    <Text
+                      className={`text-center font-semibold ${
+                        formData.inputCurrency === 'USDT' ? 'text-white' : 'text-black'
+                      }`}
+                    >
                       USDT
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    className={`flex-1 py-2 rounded-full ${formData.inputCurrency === 'PRX' ? 'bg-black' : ''}`}
+                    className={`flex-1 py-2 rounded-full ${
+                      formData.inputCurrency === 'PRX' ? 'bg-black' : ''
+                    }`}
                     onPress={() => handleInputChange('inputCurrency', 'PRX')}
                   >
-                    <Text className={`text-center font-semibold ${formData.inputCurrency === 'PRX' ? 'text-white' : 'text-black'}`}>
+                    <Text
+                      className={`text-center font-semibold ${
+                        formData.inputCurrency === 'PRX' ? 'text-white' : 'text-black'
+                      }`}
+                    >
                       PRX
                     </Text>
                   </TouchableOpacity>
-                </View>
+                </Animated.View>
 
                 {/* Amount input field */}
-                <View className="flex-row items-center mb-4">
+                <Animated.View entering={FadeInDown.duration(600).delay(800)} className="flex-row items-center mb-4">
                   <View className="bg-black rounded-full px-4 py-2">
                     <Text className="text-white text-base">{formData.inputCurrency}</Text>
                   </View>
@@ -295,7 +357,9 @@ const Exchange: React.FC = () => {
                     style={styles.gradient}
                   >
                     <TextInput
-                      className={`w-full bg-white text-black ${isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'}`}
+                      className={`w-full bg-white text-black ${
+                        isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
+                      }`}
                       style={styles.input}
                       placeholder="Amount"
                       placeholderTextColor="#9CA3AF"
@@ -304,26 +368,84 @@ const Exchange: React.FC = () => {
                       keyboardType="numeric"
                     />
                   </LinearGradient>
-                </View>
+                </Animated.View>
 
                 {/* Display equivalent amount */}
                 {formData.amount && !isPriceLoading && priceInfo && (
-                  <Text className="text-gray-700 text-sm mb-4 text-center">
+                  <Animated.Text
+                    entering={FadeIn.duration(600).delay(900)}
+                    className="text-gray-700 text-sm mb-4 text-center"
+                  >
                     {displayEquivalentAmount(equivalentAmount, formData.inputCurrency ?? 'USDT')}
-                  </Text>
+                  </Animated.Text>
                 )}
                 {isPriceLoading && formData.amount && (
-                  <Text className="text-gray-700 text-sm mb-4 text-center">Calculating...</Text>
+                  <Animated.Text
+                    entering={FadeIn.duration(600).delay(1000)}
+                    className="text-gray-700 text-sm mb-4 text-center"
+                  >
+                    Calculating...
+                  </Animated.Text>
                 )}
-                {priceError && <Text className="text-red-500 text-xs mb-4">Error fetching price</Text>}
+                {priceError && (
+                  <Animated.Text
+                    entering={FadeIn.duration(600).delay(1100)}
+                    className="text-red-500 text-xs mb-4 text-center"
+                  >
+                    Error fetching price
+                  </Animated.Text>
+                )}
 
                 {/* Validation errors */}
-                {errors.amount && <Text className="text-red-500 text-xs mb-4  text-center">{errors.amount}</Text>}
-                {errors.inputCurrency && <Text className="text-red-500 text-xs mb-4 text-center">{errors.inputCurrency}</Text>}
-                {errors.senderAddress && <Text className="text-red-500 text-xs mb-4 text-center">{errors.senderAddress}</Text>}
-                {error && <Text className="text-red-500 text-xs mb-4 text-center">{error.message}</Text>}
+                {errors.amount && (
+                  <Animated.Text
+                    entering={FadeIn.duration(600).delay(1200)}
+                    className="text-red-500 text-xs mb-4 text-center"
+                  >
+                    {errors.amount}
+                  </Animated.Text>
+                )}
+                {errors.inputCurrency && (
+                  <Animated.Text
+                    entering={FadeIn.duration(600).delay(1300)}
+                    className="text-red-500 text-xs mb-4 text-center"
+                  >
+                    {errors.inputCurrency}
+                  </Animated.Text>
+                )}
+                {errors.senderAddress && (
+                  <Animated.Text
+                    entering={FadeIn.duration(600).delay(1400)}
+                    className="text-red-500 text-xs mb-4 text-center"
+                  >
+                    {errors.senderAddress}
+                  </Animated.Text>
+                )}
+                {errors.amount && (
+                  <Animated.Text
+                    entering={FadeIn.duration(600).delay(1500)}
+                    className="text-red-500 text-xs mb-4 text-center"
+                  >
+                    {errors.amount}
+                  </Animated.Text>
+                )}
+                {error &&   (
+                  <Animated.Text
+                    entering={FadeIn.duration(600).delay(1500)}
+                    className="text-red-500 text-xs mb-4 text-center"
+                  >
+                    {error.message}
+                  </Animated.Text>
+                )}
 
-                <Button title="Exchange" onPress={handleTrade} isLandscape={isLandscape} width="full" />
+                <Animated.View entering={FadeInDown.duration(600).delay(1600)}>
+                  <Button
+                    title="Exchange"
+                    onPress={handleTrade}
+                    isLandscape={isLandscape}
+                    width="full"
+                  />
+                </Animated.View>
               </View>
             </LinearGradient>
           </View>
@@ -340,7 +462,7 @@ const Exchange: React.FC = () => {
         isLandscape={isLandscape}
       />
 
-      <StatusBar style="dark" translucent={false} />
+      <StatusBar style="dark" translucent={false} backgroundColor="white" />
     </SafeAreaView>
   );
 };

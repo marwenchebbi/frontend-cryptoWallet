@@ -1,5 +1,5 @@
 import { View, Text, Image } from "react-native";
-import Button from "../../components/Button";
+import Button from "../components/Button";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 

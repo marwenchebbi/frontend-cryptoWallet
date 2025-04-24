@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';
 import { changePasswordSchema } from '../../validators/auth.validator';
 import { validateForm } from '../../validators/helpers';
-import { ChangePasswordData, ChangePasswordResponse } from '@/app/models/types';
+import { ChangePasswordData, ChangePasswordResponse, IP_ADDRESS } from '@/app/models/types'
 
 
 
@@ -14,12 +14,14 @@ const changePassword = async (data: ChangePasswordData): Promise<ChangePasswordR
     throw new Error(JSON.stringify(errors));
   }
 
+
+
   const token = await SecureStore.getItemAsync('accessToken');
   if (!token) {
     throw new Error('No access token found');
   }
 
-  const response = await fetch('http://192.168.11.38:3000/auth/change-password', {
+  const response = await fetch(`http://${IP_ADDRESS}:3000/auth/change-password`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

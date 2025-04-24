@@ -1,5 +1,6 @@
 // hooks/auth-hooks/useLogout.ts
-import { LogoutResponse } from '@/app/models/types';
+import { LogoutResponse } from '@/app/models/auth';
+import { IP_ADDRESS } from '@/app/models/types';
 import { useMutation } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';
 
@@ -9,7 +10,7 @@ const logout = async (): Promise<LogoutResponse> => {
     throw new Error('No access token found');
   }
 
-  const response = await fetch('http://192.168.11.38:3000/auth/logout', {
+  const response = await fetch(`http://${IP_ADDRESS}:3000/auth/logout`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -33,6 +34,7 @@ export const useLogout = () => {
         SecureStore.deleteItemAsync('accessToken'),
         SecureStore.deleteItemAsync('refreshToken'),
         SecureStore.deleteItemAsync('walletAddress'),
+        SecureStore.deleteItemAsync('userId')
       ]);
       console.log(data.message);
     },

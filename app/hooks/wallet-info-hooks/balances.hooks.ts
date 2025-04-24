@@ -1,3 +1,4 @@
+import { IP_ADDRESS } from "@/app/models/types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Define the response type based on your backend
@@ -13,7 +14,7 @@ interface WalletInfoRequest {
 }
 
 const getWalletInfo = async (address: string): Promise<WalletInfoDTO> => {
-  const url = `http://192.168.11.38:3000/wallet/info?address=${encodeURIComponent(address)}`;
+  const url = `http://${IP_ADDRESS}:3000/wallet/info?address=${encodeURIComponent(address)}`;
   const res = await fetch(url, {
     method: 'GET',
     headers: {

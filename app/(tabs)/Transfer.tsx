@@ -19,17 +19,18 @@ import { StatusBar } from 'expo-status-bar';
 import { useOrientation } from '../hooks/shared/useOrientation';
 import { useHandleBack } from '../hooks/shared/useHandleBack';
 
+
 // Components
-import Header from '@/components/Header';
-import Button from '@/components/Button';
-import ConfirmationModal from '../modals/confirmationModal';
-import BalanceDetails from '@/components/BalancesDetails';
+import Header from '@/app/components/Header';
+import Button from '@/app/components/Button';
+import ConfirmationModal from '../components/confirmationModal';
+import BalanceDetails from '@/app/components/BalancesDetails';
 
 // Libraries & utils
 import * as SecureStore from 'expo-secure-store';
 import { validateForm } from '../validators/helpers';
 import { transcationSchema } from '../validators/transaction.validator';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 // API hooks
 import { useTransferPRX, useTransferUSDT } from '../hooks/transactions-hooks/transfer.hooks';
@@ -37,20 +38,23 @@ import { useGetWalletInfo } from '../hooks/wallet-info-hooks/balances.hooks';
 import { useGetPrice } from '../hooks/transactions-hooks/price.hooks';
 
 // Types
-import { TransactionType, TransferData } from '../models/types';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useBiometricAuth } from '../hooks/shared/useBiometricAuth';
+import { TransactionType, TransferData } from '../models/transaction';
 
 const TransferScreen: React.FC = () => {
-   const insets = useSafeAreaInsets();
-  const router = useRouter(); // For navigation
-  const isLandscape = useOrientation(); // Detect screen orientation
-  const handleBack = useHandleBack(); // Back button behavior
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const isLandscape = useOrientation();
+  const handleBack = useHandleBack();
+  const { isBiometricSupported, authenticate, error: biometricError } = useBiometricAuth(); // Added
 
   // Form state
   const [formData, setFormData] = useState<TransferData>({
     amount: '',
     senderAddress: '',
-    receiverAddress: '',//other field are useless in these operations
+    receiverAddress: '',
   });
 
   // State for toggling balance/coin display
@@ -130,31 +134,39 @@ const TransferScreen: React.FC = () => {
   const handleTransfer = async () => {
     const { errors, success } = await validateForm(formData, transcationSchema);
 
-
-    if (success) {
-      if (!formData.senderAddress) {
-        setErrors((prev) => ({ ...prev, senderAddress: 'Sender address is required' }));
-        return;
-      }
-      if (!formData.amount || parseFloat(formData.amount) <= 0) {
-        setErrors((prev) => ({ ...prev, amount: 'Please enter a valid amount' }));
-        return;
-      }
-
-      // Show confirmation modal before proceeding
-      setConfirmModalVisible(true);
-    } else {
+    if (!success) {
       setErrors(errors);
+      return;
     }
 
+    if (!formData.senderAddress) {
+      setErrors((prev) => ({ ...prev, senderAddress: 'Sender address is required' }));
+      return;
+    }
+    if (!formData.amount || parseFloat(formData.amount) <= 0) {
+      setErrors((prev) => ({ ...prev, amount: 'Please enter a valid amount' }));
+      return;
+    }
 
+    if (isBiometricSupported) {
+      const isAuthenticated = await authenticate();
+      if (!isAuthenticated) {
+        setErrors({ amount : biometricError || 'Biometric verification failed' }); // this is only to handle the error 
+        return;
+      }
+    }
+
+    // Show confirmation modal before proceeding
+    setConfirmModalVisible(true);
   };
 
   // Show loading screen while wallet info is loading
   if (isWalletLoading) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-white">
-        <Text>Loading wallet information...</Text>
+        <Animated.View entering={FadeIn.duration(600)}>
+          <Text>Loading wallet information...</Text>
+        </Animated.View>
       </SafeAreaView>
     );
   }
@@ -163,7 +175,9 @@ const TransferScreen: React.FC = () => {
   if (walletError) {
     return (
       <SafeAreaView className="flex-1 bg-white">
-        <Text className="text-red-500">Error: {walletError.message}</Text>
+        <Animated.View entering={FadeIn.duration(600)}>
+          <Text className="text-red-500">Error: {walletError.message}</Text>
+        </Animated.View>
       </SafeAreaView>
     );
   }
@@ -173,64 +187,70 @@ const TransferScreen: React.FC = () => {
     priceRefetch();
     walletRefetch();
   };
-   const handleHistoryIcon = () =>{
-      router.push({
-        pathname: '/screens/history.screen',
-        params: { transactionType: TransactionType.TRANSFER },
-      });
-    }
 
+  const handleHistoryIcon = () => {
+    router.push({
+      pathname: '/screens/history.screen',
+      params: { transactionType: TransactionType.TRANSFER },
+    });
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-          <View
+      <Animated.View
+        entering={FadeIn.duration(600)}
         className="absolute top-0 left-0 right-0 z-40 bg-transparent"
         style={{ paddingTop: insets.top }}
       >
-        <Header title="Profile" onHistoryPress={handleHistoryIcon} isLandscape={isLandscape} backEnabled={false} historyEnabled={true}  />
-      </View>
+        <Header
+          title="Transfer"
+          onHistoryPress={handleHistoryIcon}
+          isLandscape={isLandscape}
+          backEnabled={false}
+          historyEnabled={true}
+        />
+      </Animated.View>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <Animated.ScrollView 
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', }}
+        <Animated.ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
           keyboardShouldPersistTaps="handled"
           refreshControl={
-            <RefreshControl className='flex-1 absolute z-50'
+            <RefreshControl
               refreshing={isWalletLoading || isPriceLoading}
               onRefresh={updateWAlletData}
-              style={{ flexGrow: 1, justifyContent: 'center', zIndex : 40 }}
             />
           }
         >
-  
-
           {/* Display balance info */}
-          <View className="items-center mt-20">
-          <BalanceDetails 
-            walletInfo={walletInfo}
-            selectedBalance={selectedBalance}
-            onToggleBalance={() =>
-              setSelectedBalance(selectedBalance === 'Proxym' ? 'USDT' : 'Proxym')
-            }
-            isLandscape={isLandscape}
-            price={priceInfo ?? 0}
-          />
-          </View>
+          <Animated.View entering={FadeInDown.duration(600).delay(200)} className="items-center mt-20">
+            <BalanceDetails
+              walletInfo={walletInfo}
+              selectedBalance={selectedBalance}
+              onToggleBalance={() =>
+                setSelectedBalance(selectedBalance === 'Proxym' ? 'USDT' : 'Proxym')
+              }
+              isLandscape={isLandscape}
+              price={priceInfo ?? 0}
+            />
+          </Animated.View>
 
           {/* Refresh tip */}
           {!isWalletLoading && (
-            <View className="mt-4 p-2 bg-white rounded">
+            <Animated.View entering={FadeInDown.duration(600).delay(300)} className="mt-4 p-2 bg-white rounded">
               <Text className="text-pink-700 text-center text-sm">
                 Swipe down to refresh your balance details
               </Text>
-            </View>
+            </Animated.View>
           )}
 
           {/* Transfer form container */}
-          <View className="flex-1 items-center justify-center my-8 ">
+          <View
+            className="flex-1 items-center justify-center my-8"
+          >
             <LinearGradient
               colors={['#A855F7', '#F472B6']}
               start={{ x: 0, y: 0 }}
@@ -239,15 +259,18 @@ const TransferScreen: React.FC = () => {
               style={styles.gradient}
             >
               <View className="bg-white rounded-3xl p-6" style={styles.transferContainer}>
-                <Text
-                  className={`text-black text-center font-semibold ${isLandscape ? 'text-lg' : 'text-xl'
+                <Animated.View entering={FadeInDown.duration(600).delay(500)}>
+                  <Text
+                    className={`text-black text-center font-semibold ${
+                      isLandscape ? 'text-lg' : 'text-xl'
                     } mb-5`}
-                >
-                  Transfer
-                </Text>
+                  >
+                    Transfer
+                  </Text>
+                </Animated.View>
 
                 {/* Toggle between PRX / USDT */}
-                <View className="flex-row items-center mb-4">
+                <Animated.View entering={FadeInDown.duration(600).delay(600)} className="flex-row items-center mb-4">
                   <TouchableOpacity
                     onPress={() => setSelectedCoin(selectedCoin === 'PRX' ? 'USDT' : 'PRX')}
                   >
@@ -265,8 +288,9 @@ const TransferScreen: React.FC = () => {
                     style={styles.gradient}
                   >
                     <TextInput
-                      className={`w-full bg-white text-black ${isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
-                        }`}
+                      className={`w-full bg-white text-black ${
+                        isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
+                      }`}
                       style={styles.input}
                       placeholder="Amount"
                       placeholderTextColor="#9CA3AF"
@@ -275,13 +299,15 @@ const TransferScreen: React.FC = () => {
                       keyboardType="numeric"
                     />
                   </LinearGradient>
-                </View>
+                </Animated.View>
                 {errors.amount && (
-                  <Text className="text-red-500 text-xs mb-4">{errors.amount}</Text>
+                  <Animated.View entering={FadeIn.duration(600).delay(700)}>
+                    <Text className="text-red-500 text-xs mb-4">{errors.amount}</Text>
+                  </Animated.View>
                 )}
 
                 {/* Recipient address */}
-                <View className="mb-6">
+                <Animated.View entering={FadeInDown.duration(600).delay(800)} className="mb-6">
                   <Text className="text-gray-500 text-sm mb-2">Recipient address</Text>
                   <LinearGradient
                     colors={['#A855F7', '#F472B6']}
@@ -291,8 +317,9 @@ const TransferScreen: React.FC = () => {
                     style={styles.gradient}
                   >
                     <TextInput
-                      className={`w-full bg-white text-black ${isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
-                        }`}
+                      className={`w-full bg-white text-black ${
+                        isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
+                      }`}
                       style={styles.input}
                       placeholder="Recipient address"
                       placeholderTextColor="#9CA3AF"
@@ -302,25 +329,46 @@ const TransferScreen: React.FC = () => {
                     />
                   </LinearGradient>
                   {errors.receiverAddress && (
-                    <Text className="text-red-500 text-xs mt-1 text-center">{errors.receiverAddress}</Text>
+                    <Animated.View entering={FadeIn.duration(600).delay(900)}>
+                      <Text className="text-red-500 text-xs mt-1 text-center">
+                        {errors.receiverAddress}
+                      </Text>
+                    </Animated.View>
                   )}
-                </View>
+                </Animated.View>
 
                 {/* Sender address or server errors */}
                 {errors.senderAddress && (
-                  <Text className="text-red-500 text-xs mb-4 text-center">{errors.senderAddress}</Text>
+                  <Animated.View entering={FadeIn.duration(600).delay(1000)}>
+                    <Text className="text-red-500 text-xs mb-4 text-center">
+                      {errors.senderAddress}
+                    </Text>
+                  </Animated.View>
+                )}
+                {errors.amount && (
+                  <Animated.View entering={FadeIn.duration(600).delay(1100)}>
+                    <Text className="text-red-500 text-xs mb-4 text-center">
+                      {errors.amount}
+                    </Text>
+                  </Animated.View>
                 )}
                 {transferError && (
-                  <Text className="text-red-500 text-xs mb-4 text-center ">{transferError.message}</Text>
+                  <Animated.View entering={FadeIn.duration(600).delay(1100)}>
+                    <Text className="text-red-500 text-xs mb-4 text-center">
+                      {transferError.message}
+                    </Text>
+                  </Animated.View>
                 )}
 
                 {/* Transfer button */}
-                <Button
-                  title="Transfer"
-                  onPress={handleTransfer}
-                  isLandscape={isLandscape}
-                  width="full"
-                />
+                <Animated.View entering={FadeInDown.duration(600).delay(1200)}>
+                  <Button
+                    title="Transfer"
+                    onPress={handleTransfer}
+                    isLandscape={isLandscape}
+                    width="full"
+                  />
+                </Animated.View>
               </View>
             </LinearGradient>
           </View>
@@ -338,7 +386,7 @@ const TransferScreen: React.FC = () => {
         isLandscape={isLandscape}
       />
 
-      <StatusBar style="dark" translucent={false} />
+      <StatusBar style="dark" translucent={false} backgroundColor="white" />
     </SafeAreaView>
   );
 };

@@ -2,6 +2,10 @@
   "expo": {
     "name": "Wallet",
     "slug": "Wallet",
+    "splash": {
+      "backgroundColor": "#FFFFFF", // Replace with the background color of your Lottie animation
+      "resizeMode": "cover"
+    },
     "version": "1.0.0",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -9,9 +13,15 @@
       "bundler": "metro",
       "output": "static"
     },
+    "ios": {
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "This app uses Face ID or Touch ID to verify your identity during login."
+      }
+    },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-splash-screen"
     ],
     "experiments": {
       "typedRoutes": true
