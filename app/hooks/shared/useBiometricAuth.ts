@@ -1,6 +1,7 @@
 // hooks/auth-hooks/useBiometricAuth.ts
 import { useState, useEffect } from 'react';
 import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
 import { Alert, Linking, Platform } from 'react-native';
 
 export const useBiometricAuth = () => {
@@ -29,7 +30,7 @@ export const useBiometricAuth = () => {
                 text: 'Open Settings',
                 onPress: openDeviceSettings,
               },
-            ]
+            ],
           );
         }
       } catch (err) {
@@ -54,39 +55,43 @@ export const useBiometricAuth = () => {
   };
 
   const authenticate = async (): Promise<boolean> => {
-    if (!isBiometricSupported) {
-      setError('Biometric authentication not supported');
-      return false;
-    }
-    if (!isBiometricEnrolled) {
-      setError('Biometric authentication not set up');
-      Alert.alert(
-        'Biometric Setup Required',
-        'Please set up biometric authentication in your device settings.',
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-          {
-            text: 'Open Settings',
-            onPress: openDeviceSettings,
-          },
-        ]
-      );
-      return false;
-    }
-
     try {
+      // Check if 2FA is enabled in SecureStore
+      const is2FAEnabled = await SecureStore.getItemAsync('TowFAEnabled');
+      if (is2FAEnabled !== 'true') {
+        // If 2FA is not enabled, bypass biometric authentication
+        return true;
+      }
+
+      // If 2FA is enabled, require biometric authentication
+      if (!isBiometricSupported) {
+        setError('Biometric authentication not supported');
+        return false;
+      }
+      if (!isBiometricEnrolled) {
+        setError('Biometric authentication not set up');
+        Alert.alert(
+          'Biometric Setup Required',
+          'Please set up biometric authentication in your device settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: openDeviceSettings },
+          ],
+        );
+        return false;
+      }
+
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Verify your identity',
         cancelLabel: 'Cancel',
         disableDeviceFallback: true,
       });
+
       if (!result.success) {
         setError('Biometric verification failed');
         return false;
       }
+
       return true;
     } catch (err) {
       setError('Failed to perform biometric verification');

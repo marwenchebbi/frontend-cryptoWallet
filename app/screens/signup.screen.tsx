@@ -43,6 +43,7 @@ const SignupScreen: React.FC = () => {
   const isLandscape = useOrientation();
   const handleBack = useHandleBack();
   const { mutate, isPending, error: mutationError } = useSignup();
+  const [serverErrors, setServerErrors] =  useState<string>('')
 
   // Create refs for TextInputs and ScrollView
   const nameInputRef = useRef<TextInput>(null);
@@ -113,7 +114,7 @@ const SignupScreen: React.FC = () => {
         <ScrollView
           ref={scrollViewRef}
           contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="never"
         >
           <View className={`flex-1 justify-center items-center ${isLandscape ? 'px-6' : 'px-4'}`}>
             {/* Title */}

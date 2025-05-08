@@ -4,26 +4,36 @@ import { IP_ADDRESS } from '@/app/models/types';
 import { useMutation } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';
 
+import { ErrorResponse } from '@/app/models/error';
+import axiosInstance from '../../interceptors/axiosInstance';
+
 const logout = async (): Promise<LogoutResponse> => {
   const token = await SecureStore.getItemAsync('accessToken');
   if (!token) {
     throw new Error('No access token found');
   }
 
-  const response = await fetch(`http://${IP_ADDRESS}:3000/auth/logout`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  try {
+    const response = await axiosInstance.post<LogoutResponse>(
+      `/auth/logout`,
+      {}, // Corps vide
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `Logout failed: ${response.status}`);
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.data) {
+      const errorData: ErrorResponse = error.response.data;
+      const message = errorData.errorDetails?.message || 'Logout failed';
+      throw new Error(message);
+    }
+    throw new Error('Logout failed');
   }
-
-  return response.json();
 };
 
 export const useLogout = () => {
@@ -34,7 +44,7 @@ export const useLogout = () => {
         SecureStore.deleteItemAsync('accessToken'),
         SecureStore.deleteItemAsync('refreshToken'),
         SecureStore.deleteItemAsync('walletAddress'),
-        SecureStore.deleteItemAsync('userId')
+        SecureStore.deleteItemAsync('userId'),
       ]);
       console.log(data.message);
     },
@@ -43,4 +53,3 @@ export const useLogout = () => {
     },
   });
 };
-

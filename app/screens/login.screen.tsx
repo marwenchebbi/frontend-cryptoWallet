@@ -36,6 +36,7 @@ const LoginScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState<LoginData>({ email: '', password: '' });
   const [errors, setErrors] = useState<Partial<LoginData>>({});
+  //const [serverError, setServerError] =  useState<string>('')
   const [focusedInput, setFocusedInput] = useState<'email' | 'password' | null>(null);
   const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
   const isLandscape = useOrientation();
@@ -49,14 +50,19 @@ const LoginScreen: React.FC = () => {
   const submitLogin = () => {
     mutate(formData, {
       onSuccess: async (data: any) => {
+        console.log(data)
         await SecureStore.setItemAsync('accessToken', data.accessToken);
         await SecureStore.setItemAsync('refreshToken', data.refreshToken);
         await SecureStore.setItemAsync('userId', data.userId.toString());
         await SecureStore.setItemAsync('walletAddress', data.walletAddress.toString());
+        await SecureStore.setItemAsync('isWalletLocked', data.isWalletLocked.toString());
+        await SecureStore.setItemAsync('TowFAEnabled', data.TowFAEnabled.toString());
+        console.log(await SecureStore.getItemAsync('TowFAEnabled'))
+
         setIsSuccessModalVisible(true); // Show success modal
       },
-      onError: (err: any) => {
-        setErrors({ email: err.message || 'Invalid credentials' });
+      onError: (err: Error) => {
+        console.log(err)
       },
     });
   };
@@ -82,6 +88,7 @@ const LoginScreen: React.FC = () => {
   const handleInputChange = (field: keyof LoginData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setErrors({});
+
   };
 
   const handleInputFocus = (field: 'email' | 'password', yPosition: number) => {
@@ -113,7 +120,7 @@ const LoginScreen: React.FC = () => {
         <ScrollView
           ref={scrollViewRef}
           contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="never"
         >
           <View className={`flex-1 justify-center items-center ${isLandscape ? 'px-6' : 'px-4'}`}>
             {/* Title */}
@@ -207,7 +214,7 @@ const LoginScreen: React.FC = () => {
             </Animated.View>
 
             {/* Error Message */}
-            {error && <Text className="text-red-500 mt-2 text-sm">{error.message}</Text>}
+            {error && <Text className="text-red-500 mt-2 text-sm">{error.toString()}</Text>}
           </View>
 
           <Animated.View
@@ -260,12 +267,12 @@ const LoginScreen: React.FC = () => {
         message="Vous êtes maintenant connecté à votre portefeuille crypto."
         onClose={() => {
           setIsSuccessModalVisible(false);
-          router.push('/(tabs)/Home');
+          router.replace('/(tabs)/Home');
         }}
         duration={2000}
       />
 
-      <StatusBar style="light" translucent={false} />
+      <StatusBar style="dark" translucent={false} />
     </SafeAreaView>
   );
 };

@@ -27,11 +27,14 @@ interface HistoryScreenProps {
   transactionType?: TransactionType;
 }
 
+
 const HistoryScreen: React.FC<HistoryScreenProps> = ({ transactionType: propTransactionType }) => {
   const insets = useSafeAreaInsets();
   const isLandscape = useOrientation();
   const handleBack = useHandleBack();
   const params = useLocalSearchParams();
+
+  const [backenabled,setBackEnabled] = useState<boolean>(true)
 
   // Extract transactionType from params if not provided via props
   const transactionType = propTransactionType || (params.transactionType as TransactionType);
@@ -119,19 +122,20 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ transactionType: propTran
     <SafeAreaView className="flex-1 bg-white">
       <Animated.View
         entering={FadeIn.duration(600)}
-        className="absolute top-0 left-0 right-0 z-40 bg-white"
+        className="absolute top-0 left-0 right-0 z-40 bg-transparent"
         style={{ paddingTop: insets.top }}
       >
         <Header
           title={`${transactionType === TransactionType.TRADING ? 'Trading' : 'Transfer'} History`}
           onBackPress={handleBack}
           isLandscape={isLandscape}
-          backEnabled={true}
+          backEnabled={backenabled}
           historyEnabled={false}
         />
       </Animated.View>
 
       <ScrollView
+
         contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 60 }}
         keyboardShouldPersistTaps="handled"
         refreshControl={
@@ -143,7 +147,7 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ transactionType: propTran
           />
         }
       >
-        <Animated.View
+        <Animated.View 
           entering={FadeInDown.duration(600).delay(200)}
           className={`flex-1 ${isLandscape ? 'px-6' : 'px-4'} pb-4`}
         >

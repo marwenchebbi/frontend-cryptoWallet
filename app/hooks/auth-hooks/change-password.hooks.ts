@@ -1,41 +1,46 @@
 import { useMutation } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';
+import axios from 'axios';
 import { changePasswordSchema } from '../../validators/auth.validator';
 import { validateForm } from '../../validators/helpers';
-import { ChangePasswordData, ChangePasswordResponse, IP_ADDRESS } from '@/app/models/types'
-
-
-
+import { IP_ADDRESS } from '@/app/models/types';
+import { ChangePasswordData, ChangePasswordResponse } from '@/app/models/user';
+import { ErrorResponse } from '@/app/models/error';
+import axiosInstance from '@/app/interceptors/axiosInstance';
 
 const changePassword = async (data: ChangePasswordData): Promise<ChangePasswordResponse> => {
-  // Validate input using changePasswordSchema
+  // Validation des données d'entrée
   const { success, errors } = await validateForm(data, changePasswordSchema);
   if (!success) {
     throw new Error(JSON.stringify(errors));
   }
 
-
-
+  // Récupération du token d'accès
   const token = await SecureStore.getItemAsync('accessToken');
   if (!token) {
     throw new Error('No access token found');
   }
 
-  const response = await fetch(`http://${IP_ADDRESS}:3000/auth/change-password`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.errorDetails?.message || `Failed to change password: ${response.status}`);
+  try {
+    const response = await axiosInstance.post<ChangePasswordResponse>(
+      `/auth/change-password`,
+      data,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.data) {
+      const errorData: ErrorResponse = error.response.data;
+      const message = errorData.errorDetails?.message || 'change password  failed';
+      throw new Error(message);
+    }
+    throw new Error('Changing password failed !!');
   }
-
-  return response.json();
 };
 
 export const useChangePassword = () => {

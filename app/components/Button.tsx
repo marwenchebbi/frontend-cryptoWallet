@@ -21,6 +21,7 @@ const Button: React.FC<ButtonProps> = ({
         borderRadius: 999,
         paddingVertical: isLandscape ? 6 : 10,
         paddingHorizontal: isLandscape ? 14 : 20,
+        
         ...(width === 'full' ? { maxWidth: 448, width: '100%' } : { width: 'auto' }),
         
       }}

@@ -1,31 +1,39 @@
+import axios from 'axios';
 import { IP_ADDRESS } from "@/app/models/types";
 import { useQuery } from "@tanstack/react-query";
+import axiosInstance from '@/app/interceptors/axiosInstance';
 
+// API function to fetch the PRX price using Axios
 const getPrice = async (): Promise<number> => {
-  const url = `http://${IP_ADDRESS}:3000/transaction/price` 
-  const res = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    }
-  });
+  const url = `/transaction/price`;
 
-  if (res.status === 200 || res.status === 201) {
-    return res.json();
-  } else if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData.errorDetails?.message || 'Transfer failed');
+  try {
+    const response = await axiosInstance.get(url, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    // Check if the response data is in the expected format
+    if (typeof response.data === 'number') {
+      return response.data;
+    } else if (response.data && typeof response.data.price === 'number') {
+      return response.data.price;
+    } else {
+      throw new Error('Invalid response format: price not found.');
+    }
+  } catch (error: any) {
+    // Handle Axios errors
+    const errorMessage = error.response?.data?.errorDetails?.message || 'Failed to retrieve price.';
+    throw new Error(errorMessage);
   }
-  return res.json();
 };
 
-
-export const useGetPrice = () =>{
-    return useQuery({
-        queryKey : ['getPrice' ] ,
-        queryFn : ()=> getPrice(),
-        refetchOnWindowFocus: true,
-
-    })
-
-}
+// Custom hook to retrieve the current price using Axios
+export const useGetPrice = () => {
+  return useQuery<number, Error>({
+    queryKey: ['getPrice'],
+    queryFn: getPrice,
+    refetchOnWindowFocus: true,
+  });
+};

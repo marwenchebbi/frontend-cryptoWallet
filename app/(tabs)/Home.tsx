@@ -1,5 +1,4 @@
-// screens/HomeScreen.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -19,22 +18,28 @@ import { Ionicons } from '@expo/vector-icons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 
-
 import Header from '@/app/components/Header';
 import { useGetWalletInfo } from '../hooks/wallet-info-hooks/balances.hooks';
 import { useGetPrice } from '../hooks/transactions-hooks/price.hooks';
 import BalanceDetails from '../components/BalancesDetails';
 import TransactionHistory from '../components/TransactionHistory';
 import { TransactionType } from '../models/transaction';
+import TokenPriceChart from '../components/TokenPriceChart';
+import { usePriceHistory } from '../hooks/price-history-hooks/price-history.hooks';
 
 const Home: React.FC = () => {
   const insets = useSafeAreaInsets();
   const isLandscape = useOrientation();
   const router = useRouter();
+    const { refetch } = usePriceHistory();
+  
 
   // State for user ID and wallet address
   const [userId, setUserId] = useState<string | null>(null);
   const [senderAddress, setSenderAddress] = useState<string | null>(null);
+
+  // State to hold chart refetch function
+  const [chartRefetch, setChartRefetch] = useState<(() => void) | null>(null);
 
   // Fetch user ID and wallet address
   useEffect(() => {
@@ -57,6 +62,7 @@ const Home: React.FC = () => {
     error: walletError,
     refetch: walletRefetch,
   } = useGetWalletInfo(senderAddress || '');
+  
   const {
     data: priceInfo,
     isLoading: isPriceLoading,
@@ -64,11 +70,17 @@ const Home: React.FC = () => {
     refetch: priceRefetch,
   } = useGetPrice();
 
-  // Refetch wallet and price information
-  const updateWalletData = () => {
+  // Handler to receive chart refetch function from TokenPriceChart
+  const handleChartRefetch = useCallback((refetchFunc: () => void) => {
+    setChartRefetch(() => refetchFunc);
+  }, []);
+
+  // Refetch wallet, price, and chart information
+  const updateWalletData = useCallback(() => {
     walletRefetch();
     priceRefetch();
-  };
+    refetch();
+  }, [walletRefetch, priceRefetch, chartRefetch]);
 
   // Navigation handlers for action buttons
   const handleSend = () => router.push('/(tabs)/Transfer');
@@ -116,7 +128,7 @@ const Home: React.FC = () => {
           onHistoryPress={handleLoadMore}
           isLandscape={isLandscape}
           backEnabled={false}
-          historyEnabled={true}
+          historyEnabled={false}
         />
       </Animated.View>
 
@@ -124,11 +136,14 @@ const Home: React.FC = () => {
         contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 60 }}
         keyboardShouldPersistTaps="handled"
         refreshControl={
-          <RefreshControl refreshing={isWalletLoading || isPriceLoading} onRefresh={updateWalletData} />
+          <RefreshControl
+            refreshing={isWalletLoading || isPriceLoading}
+            onRefresh={updateWalletData}
+          />
         }
       >
         {/* Balance Section */}
-        <Animated.View entering={FadeInDown.duration(600).delay(200)} >
+        <Animated.View entering={FadeInDown.duration(600).delay(200)}>
           <BalanceDetails
             walletInfo={walletInfo}
             selectedBalance={selectedBalance}
@@ -141,7 +156,10 @@ const Home: React.FC = () => {
         </Animated.View>
 
         {/* Refresh Hint */}
-        <Animated.View entering={FadeInDown.duration(600).delay(300)} className="mt-4 p-2 bg-white rounded">
+        <Animated.View
+          entering={FadeInDown.duration(600).delay(300)}
+          className="mt-4 p-2 bg-white rounded"
+        >
           {!isWalletLoading && (
             <Text className="text-pink-700 text-sm text-center">
               Swipe down to refresh your balance details
@@ -156,13 +174,13 @@ const Home: React.FC = () => {
         >
           <TouchableOpacity onPress={handleSend} className="items-center">
             <View className="bg-purple-100 p-4 rounded-full">
-            <FontAwesome name="send" size={24} color="#A855F7" />
+              <FontAwesome name="send" size={24} color="#A855F7" />
             </View>
             <Text className="text-black mt-2">Send</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleSell} className="items-center">
             <View className="bg-purple-100 p-4 rounded-full">
-            <FontAwesome5 name="donate" size={24} color="#A855F7" />
+              <FontAwesome5 name="donate" size={24} color="#A855F7" />
             </View>
             <Text className="text-black mt-2">Sell</Text>
           </TouchableOpacity>
@@ -179,22 +197,15 @@ const Home: React.FC = () => {
           entering={FadeInDown.duration(600).delay(500)}
           className="px-4 mt-6"
         >
-          <TransactionHistory
-            userId={userId}
-            transactionType={TransactionType.TRADING}
-            onLoadMore={handleLoadMore}
-          />
+          <TransactionHistory userId={userId} onLoadMore={handleLoadMore} />
         </Animated.View>
 
-        {/* Price Chart Placeholder */}
+        {/* Price Chart Section */}
         <Animated.View
           entering={FadeInDown.duration(600).delay(600)}
           className="px-4 mt-6 mb-6"
         >
-          <Text className="text-gray-500 text-sm mb-2">Price Chart Placeholder</Text>
-          <View className="h-40 bg-purple-100 rounded-lg justify-center items-center">
-            <Text className="text-gray-500">Chart not implemented</Text>
-          </View>
+          <TokenPriceChart />
         </Animated.View>
       </ScrollView>
 

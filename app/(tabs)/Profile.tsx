@@ -1,4 +1,3 @@
-// screens/profile.screen.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -6,11 +5,9 @@ import {
   TextInput,
   SafeAreaView,
   KeyboardAvoidingView,
-  ScrollView,
   Platform,
   RefreshControl,
   TouchableOpacity,
-  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -19,8 +16,8 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RFValue } from 'react-native-responsive-fontsize';
-
-
+import QRCode from 'react-native-qrcode-svg';
+import * as SecureStore from 'expo-secure-store';
 
 // Custom hooks
 import { useOrientation } from '../hooks/shared/useOrientation';
@@ -42,24 +39,26 @@ const ProfileScreen: React.FC = () => {
   const handleBack = useHandleBack();
   const insets = useSafeAreaInsets();
 
-    const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+  const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string>('Success');
 
   // Form state for editable user info
   const [formData, setFormData] = useState<UserFormData>({
     name: '',
     email: '',
   });
+
   // Password change state
   const [passwordData, setPasswordData] = useState({
     oldPassword: '',
     newPassword: '',
   });
+
   const [isEditingName, setIsEditingName] = useState(false);
   const [isEditingPassword, setIsEditingPassword] = useState(false);
   const [errors, setErrors] = useState<
     Partial<UserFormData & { oldPassword: string; newPassword: string; general: string }>
   >({});
-
 
   // Fetch user info
   const {
@@ -78,10 +77,15 @@ const ProfileScreen: React.FC = () => {
   // Change password mutation
   const { mutate: changePasswordMutate, isPending: isChangePasswordPending } = useChangePassword();
 
-  //modal message 
-const [successMessage,setSuccessMessage]= useState<string>('Success')
+  /* Handle token expiration
+  useEffect(() => {
+    if (userError?.message === 'TOKEN_EXPIRED') {
+      SecureStore.deleteItemAsync('accessToken');
+      router.replace('/screens/login.screen');
+    }
+  }, [userError, router]);*/
 
-  // Initialize form data when user info loads
+  // Initialize form data and ensure QR code updates
   useEffect(() => {
     if (userInfo) {
       setFormData({
@@ -114,8 +118,8 @@ const [successMessage,setSuccessMessage]= useState<string>('Success')
     updateProfileMutate(formData, {
       onSuccess: () => {
         setIsEditingName(false);
-        setIsSuccessModalVisible(true); // Show success modal
-        setSuccessMessage('Name changed successfully! 😎 ')
+        setIsSuccessModalVisible(true);
+        setSuccessMessage('Name changed successfully! 😎');
       },
       onError: (error: { message: string }) => {
         try {
@@ -134,15 +138,15 @@ const [successMessage,setSuccessMessage]= useState<string>('Success')
       onSuccess: () => {
         setIsEditingPassword(false);
         setPasswordData({ oldPassword: '', newPassword: '' });
-        setIsSuccessModalVisible(true); // Show success modal
-        setSuccessMessage('Password changed successfully! 😎 ')
+        setIsSuccessModalVisible(true);
+        setSuccessMessage('Password changed successfully! 😎');
       },
       onError: (error: { message: string }) => {
         try {
           const validationErrors = JSON.parse(error.message);
           setErrors(validationErrors);
         } catch {
-          setErrors({ general: error.message || 'Failed to change password! 😎 ' });
+          setErrors({ general: error.message || 'Failed to change password' });
         }
       },
     });
@@ -152,8 +156,8 @@ const [successMessage,setSuccessMessage]= useState<string>('Success')
   const handleLogout = () => {
     logoutMutate(undefined, {
       onSuccess: () => {
-        setIsSuccessModalVisible(true); // Show success modal
-        setSuccessMessage('Déconnexion Réussie! 😎 ')
+        setIsSuccessModalVisible(true);
+        setSuccessMessage('Déconnexion Réussie! 😎');
       },
       onError: (error) => {
         setErrors({ general: error.message || 'Failed to log out' });
@@ -163,7 +167,7 @@ const [successMessage,setSuccessMessage]= useState<string>('Success')
 
   // Handle settings navigation
   const handleSettings = () => {
-    router.push('/Home');
+    router.push('/screens/settings.screen');
   };
 
   // Refresh data
@@ -197,7 +201,11 @@ const [successMessage,setSuccessMessage]= useState<string>('Success')
     return (
       <SafeAreaView className="flex-1 bg-white justify-center items-center">
         <Animated.View entering={FadeIn.duration(600)}>
-          <Text className="text-red-500 text-lg">Error: {userError.message}</Text>
+          <Text className="text-red-500 text-lg">
+            {userError.message === 'TOKEN_EXPIRED'
+              ? 'Session expired. Redirecting to login...'
+              : `Error: ${userError.message}`}
+          </Text>
         </Animated.View>
       </SafeAreaView>
     );
@@ -207,15 +215,20 @@ const [successMessage,setSuccessMessage]= useState<string>('Success')
   const tabBarHeight = 50 + insets.bottom;
 
   // Estimate header height
-  const headerHeight = isLandscape ? 60 : 80;
+  const headerHeight = isLandscape ? 40 : 60;
 
   return (
     <SafeAreaView className="flex-1 bg-white">
       {/* Fixed Header */}
       <Animated.View
         entering={FadeIn.duration(600)}
-        className="absolute top-0 left-0 right-0 z-50 bg-transparent"
-        style={{ paddingTop: insets.top }}
+        className="absolute top-0 left-0 right-0 z-50 bg-white"
+        style={{ paddingTop: insets.top, borderBottomLeftRadius: 12,
+          borderBottomRightRadius: 12,shadowColor: '#fff',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 6,
+          elevation: 1,}}
       >
         <Header
           title="Profile"
@@ -232,11 +245,7 @@ const [successMessage,setSuccessMessage]= useState<string>('Success')
             className="mt-auto py-4 items-end px-8"
           >
             <TouchableOpacity onPress={handleLogout} disabled={isLogoutPending}>
-              <Ionicons
-                name="log-out"
-                size={RFValue(28)}
-                style={{ color: '#9CA3AF', opacity: 0.75 }}
-              />
+            <Text className=' text-red-600  text-xl '> Log Out</Text>
             </TouchableOpacity>
           </Animated.View>
         )}
@@ -260,20 +269,25 @@ const [successMessage,setSuccessMessage]= useState<string>('Success')
         >
           {/* QR Code Section */}
           <Animated.View entering={FadeInDown.duration(600).delay(200)} className="items-center mt-6">
-            {userInfo?.walletAddress ? (
-              <Animated.Image
+            {userInfo?.walletAddress && /^0x[a-fA-F0-9]{40}$/.test(userInfo.walletAddress) ? (
+              <Animated.View
                 entering={FadeIn.duration(600).delay(300)}
-                source={{
-                  uri: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${userInfo.walletAddress}`,
-                }}
-                className="w-40 h-40 rounded-lg"
-              />
+                className="w-40 h-40 rounded-lg overflow-hidden bg-white p-2"
+              >
+                <QRCode
+                  value={userInfo.walletAddress}
+                  size={120}
+                  color="black"
+                  backgroundColor="white"
+                  
+                />
+              </Animated.View>
             ) : (
               <Animated.Text
                 entering={FadeIn.duration(600).delay(300)}
                 className="text-gray-500 text-sm"
               >
-                No wallet address available
+                No valid wallet address available
               </Animated.Text>
             )}
             <Animated.Text
@@ -386,7 +400,7 @@ const [successMessage,setSuccessMessage]= useState<string>('Success')
               <>
                 {/* Old Password Field */}
                 <Animated.View
-                  entering={FadeInDown.duration(600).delay(1000)}
+                  
                   className={`w-full max-w-md ${isLandscape ? 'mb-2' : 'mb-6'}`}
                 >
                   <Text className="text-gray-600 text-sm mb-2">Old Password</Text>
@@ -408,12 +422,12 @@ const [successMessage,setSuccessMessage]= useState<string>('Success')
                         onChangeText={(text) => handlePasswordChange('oldPassword', text)}
                         secureTextEntry
                         autoCapitalize="none"
-                      />
+                    />
                     </View>
                   </LinearGradient>
                   {errors.oldPassword && (
                     <Animated.Text
-                      entering={FadeIn.duration(600).delay(1100)}
+                      
                       className="text-red-500 text-xs mt-1 text-center"
                     >
                       {errors.oldPassword}
@@ -423,7 +437,7 @@ const [successMessage,setSuccessMessage]= useState<string>('Success')
 
                 {/* New Password Field */}
                 <Animated.View
-                  entering={FadeInDown.duration(600).delay(1200)}
+                  
                   className={`w-full max-w-md ${isLandscape ? 'mb-2' : 'mb-6'}`}
                 >
                   <Text className="text-gray-600 text-sm mb-2">New Password</Text>
@@ -450,7 +464,7 @@ const [successMessage,setSuccessMessage]= useState<string>('Success')
                   </LinearGradient>
                   {errors.newPassword && (
                     <Animated.Text
-                      entering={FadeIn.duration(600).delay(1300)}
+                      
                       className="text-red-500 text-xs mt-1 text-center"
                     >
                       {errors.newPassword}
@@ -502,11 +516,13 @@ const [successMessage,setSuccessMessage]= useState<string>('Success')
       {/* Success Modal */}
       <SuccessModal
         isVisible={isSuccessModalVisible}
-        title="Opération Réussie !"
-        message={`${successMessage} 😎`}
+        title="Success!"
+        message={successMessage}
         onClose={() => {
           setIsSuccessModalVisible(false);
-          router.push('/screens/login.screen');
+          if (successMessage === 'Déconnexion Réussie! 😎') {
+            router.replace('/screens/login.screen');
+          }
         }}
         duration={2000}
       />

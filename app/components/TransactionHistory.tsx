@@ -5,16 +5,15 @@ import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import TransactionItem from './TransactionItem';
 
 import { useTransactionHistory } from '@/app/hooks/transactions-hooks/history.hooks';
-import { TransactionType } from '../models/transaction';
+import {  TransactionType } from '../models/transaction';
 
 interface TransactionHistoryProps {
   userId: string;
-  transactionType: TransactionType;
   onLoadMore: () => void;
 }
 
-const TransactionHistory: React.FC<TransactionHistoryProps> = ({ userId, transactionType, onLoadMore }) => {
-  const { data, isLoading, error } = useTransactionHistory(userId, 1, 3, '-createdAt', transactionType, null);
+const TransactionHistory: React.FC<TransactionHistoryProps> = ({ userId, onLoadMore }) => {
+  const { data, isLoading, error } = useTransactionHistory(userId, 1, 3, '-createdAt');
 
   if (isLoading) {
     return <ActivityIndicator size="small" color="#A855F7" />;
@@ -31,11 +30,12 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ userId, transac
   return (
     <View>
       {data.transactions.slice(0, 3).map((transaction: any, index: number) => (
+        
         <TransactionItem
           key={transaction.id || index}
           transaction={transaction}
           userId={userId}
-          transactionType={transactionType}
+          transactionType={(transaction.received_amount) ? TransactionType.TRADING : TransactionType.TRANSFER}
         />
       ))}
       <TouchableOpacity onPress={onLoadMore}>

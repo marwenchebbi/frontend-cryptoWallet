@@ -1,30 +1,38 @@
 // hooks/useSignup.ts
 import { useMutation } from '@tanstack/react-query';
+import axios from 'axios';
 import { IP_ADDRESS } from '../../models/types';
 import { SignupData } from '@/app/models/auth';
-
+import { ErrorResponse } from '@/app/models/error';
+import axiosInstance from '@/app/interceptors/axiosInstance';
 
 const signupUser = async (data: SignupData): Promise<boolean> => {
-  const url = `http://${IP_ADDRESS}:3000/auth/signup`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
+  const url = `/auth/signup`;
 
-  if (res.status === 201) {
-    return true;
-  } else if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData.errorDetails?.message || 'Signup failed');
+  try {
+    const response = await axiosInstance.post(url, data, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.status === 201) {
+      return true;
+    } else {
+      throw new Error('Unexpected response status');
+    }
+  } catch (error: any) {
+    if (error.response && error.response.data) {
+      const errorData: ErrorResponse = error.response.data;
+      const message = errorData.errorDetails?.message || 'Signup failed';
+      throw new Error(message);
+    }
+    throw new Error('Signup failed');
   }
-  return false;
 };
 
 export const useSignup = () => {
-  return useMutation({
+  return useMutation<boolean, Error, SignupData>({
     mutationFn: signupUser,
   });
 };

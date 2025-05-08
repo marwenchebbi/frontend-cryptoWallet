@@ -2,63 +2,64 @@ import { TransactionHistoryResponse, TransactionType } from '@/app/models/transa
 import { IP_ADDRESS } from '@/app/models/types';
 import { useQuery } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';
+import axios from 'axios';
+import { ErrorResponse } from '@/app/models/error';
+import axiosInstance from '@/app/interceptors/axiosInstance';
 
-// Hook to fetch transaction history
+// API function to fetch transaction history
 const fetchTransactionHistory = async (
   userId: string,
   page: number,
   limit: number,
   sort: string,
   type?: TransactionType,
-  filter?: string | null // Add filter parameter
+  filter?: string | null
 ): Promise<TransactionHistoryResponse> => {
   const token = await SecureStore.getItemAsync('accessToken');
   if (!token) {
     throw new Error('No access token found');
   }
 
-  // Build the query string with optional type and filter parameters
   const queryParams = new URLSearchParams({
     page: page.toString(),
     limit: limit.toString(),
     sort,
-    ...(type && { type: type.toString() }),
-    ...(filter && { filter }), // Include filter if provided
+    ...(type ? { type: type.toString() } : {}),
+    ...(filter ? { filter } : {}),
   });
 
-  const response = await fetch(
-    `http://${IP_ADDRESS}:3000/transaction/user/${userId}?${queryParams.toString()}`,
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `Failed to fetch transaction history: ${response.status}`);
+  try {
+    const response = await axiosInstance.get<TransactionHistoryResponse>(
+      `/transaction/user/${userId}?${queryParams.toString()}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    const errorData: ErrorResponse = error.response.data;
+    const message = errorData.errorDetails?.message || 'Failed to fetch transaction history:';
+    throw new Error(message);
   }
-
-  return await response.json();
 };
 
-// Custom hook for transaction history
+// Custom hook to fetch transaction history
 export const useTransactionHistory = (
   userId: string,
   page: number = 1,
   limit: number = 10,
   sort: string = '-createdAt',
   type?: TransactionType,
-  filter?: string | null // Add filter parameter
+  filter?: string | null
 ) => {
   return useQuery<TransactionHistoryResponse, Error>({
-    queryKey: ['transactionHistory', userId, page, limit, sort, type, filter], // Include filter in queryKey
+    queryKey: ['transactionHistory', userId, page, limit, sort, type, filter],
     queryFn: () => fetchTransactionHistory(userId, page, limit, sort, type, filter),
     retry: 1,
     refetchOnWindowFocus: true,
-    enabled: !!userId, // Only fetch when userId is available
+    enabled: !!userId, // Fetch only if userId is present
   });
 };

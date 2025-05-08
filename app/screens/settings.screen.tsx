@@ -1,0 +1,455 @@
+// screens/SettingsScreen.tsx
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  SafeAreaView,
+  ScrollView,
+  ActivityIndicator,
+  Switch,
+  TouchableOpacity,
+  TextInput,
+  Modal,
+  Alert,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { useOrientation } from '../hooks/shared/useOrientation';
+import { useHandleBack } from '../hooks/shared/useHandleBack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as SecureStore from 'expo-secure-store';
+import { LinearGradient } from 'expo-linear-gradient';
+import Header from '@/app/components/Header';
+import { Feather } from '@expo/vector-icons';
+import { useWalletMutations } from '../hooks/wallet-info-hooks/lockandunlock.hooks';
+import { use2FAMutations } from '../hooks/auth-hooks/update2FA.hooks';
+import SuccessModal from '@/app/components/SuccessModal';
+import { useBiometricAuth } from '../hooks/shared/useBiometricAuth';
+
+
+const SettingsScreen = () => {
+  const insets = useSafeAreaInsets();
+  const isLandscape = useOrientation();
+  const handleBack = useHandleBack();
+  const router = useRouter();
+  const { lockWallet, unlockWallet, isLocking, isUnlocking } = useWalletMutations();
+  const { enable2FA, disable2FA, isEnabling2FA, isDisabling2FA } = use2FAMutations();
+  const { authenticate, isBiometricSupported, isBiometricEnrolled } = useBiometricAuth();
+
+  const [backEnabled, setBackEnabled] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [lockAppEnabled, setLockAppEnabled] = useState(false);
+  const [lockAccountEnabled, setLockAccountEnabled] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [password, setPassword] = useState('');
+  const [attemptingUnlock, setAttemptingUnlock] = useState(false);
+  const [successModal, setSuccessModal] = useState<{
+    isVisible: boolean;
+    title: string;
+    message: string;
+  }>({ isVisible: false, title: '', message: '' });
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const storedUserId = await SecureStore.getItemAsync('userId');
+        const storedWalletAddress = await SecureStore.getItemAsync('walletAddress');
+        const twoFactor = await SecureStore.getItemAsync('TowFAEnabled');
+        const lockApp = await SecureStore.getItemAsync('lockAppEnabled');
+        const lockAccount = await SecureStore.getItemAsync('isWalletLocked');
+        setUserId(storedUserId);
+        setWalletAddress(storedWalletAddress);
+        setTwoFactorEnabled(twoFactor === 'true');
+        setLockAppEnabled(lockApp === 'true');
+        setLockAccountEnabled(lockAccount === 'true');
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+        setIsLoading(false);
+        Alert.alert('Error', 'Failed to load settings. Please try again.');
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  const showSuccessModal = (title: string, message: string) => {
+    setSuccessModal({ isVisible: true, title, message });
+  };
+
+  const closeSuccessModal = () => {
+    setSuccessModal({ isVisible: false, title: '', message: '' });
+  };
+
+  const handle2FAToggle = async (value: boolean) => {
+    if (!userId) {
+      Alert.alert('Error', 'User ID not found');
+      return;
+    }
+
+    try {
+      const authSuccess = await authenticate();
+      if (!authSuccess && (await SecureStore.getItemAsync('TowFAEnabled')) === 'true') {
+        Alert.alert('Authentication Failed', 'Biometric verification is required to change 2FA settings.');
+        return;
+      }
+
+      if (value) {
+        await enable2FA({ userId });
+        setTwoFactorEnabled(true);
+        showSuccessModal('2FA Enabled', 'Two-factor authentication has been enabled successfully.');
+      } else {
+        await disable2FA({ userId });
+        setTwoFactorEnabled(false);
+        showSuccessModal('2FA Disabled', 'Two-factor authentication has been disabled successfully.');
+      }
+    } catch (error) {
+      console.error('Error changing 2FA state:', error);
+      Alert.alert('Error', 'Failed to update 2FA settings. Please try again.');
+    }
+  };
+
+  const handleToggle = async (setting: string, value: boolean) => {
+    try {
+      switch (setting) {
+        case 'twoFactor':
+          await handle2FAToggle(value);
+          break;
+
+        case 'lockApp':
+          try {
+            const authSuccess = await authenticate();
+            if (authSuccess || (await SecureStore.getItemAsync('TowFAEnabled')) !== 'true') {
+              setLockAppEnabled(value);
+              await SecureStore.setItemAsync('lockAppEnabled', value.toString());
+              showSuccessModal(
+                value ? 'App Locked' : 'App Unlocked',
+                `App lock has been ${value ? 'enabled' : 'disabled'} successfully.`,
+              );
+            } else {
+              Alert.alert(
+                'Authentication Failed',
+                'Biometric verification is required to change app lock settings.',
+              );
+            }
+          } catch (error) {
+            console.error('Error during biometric authentication:', error);
+            Alert.alert('Error', 'Failed to authenticate. Please try again.');
+          }
+          break;
+
+        case 'lockAccount':
+          if (!userId || !walletAddress) {
+            Alert.alert('Error', 'User ID or wallet address not found');
+            return;
+          }
+
+          if (!isBiometricSupported || !isBiometricEnrolled) {
+            Alert.alert(
+              'Biometric Required',
+              'Please set up biometric authentication in your device settings to lock or unlock your account.',
+            );
+            return;
+          }
+
+          try {
+            const authSuccess = await authenticate();
+            if (authSuccess) {
+              if (value) {
+                await lockWallet({ userId, walletAddress });
+                setLockAccountEnabled(true);
+                await SecureStore.setItemAsync('TowFAEnabled', 'true');
+                showSuccessModal('Account Locked', 'Your account has been locked successfully.');
+              } else {
+                setAttemptingUnlock(true);
+                setShowPasswordModal(true);
+              }
+            } else {
+              Alert.alert(
+                'Authentication Failed',
+                'Biometric verification is required to lock or unlock your account.',
+              );
+            }
+          } catch (error) {
+            console.error('Error during biometric authentication:', error);
+            Alert.alert('Error', 'Failed to authenticate. Please try again.');
+          }
+          break;
+
+        default:
+          break;
+      }
+    } catch (error) {
+      console.error(`Error updating ${setting}:`, error);
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+    }
+  };
+
+  const handleUnlockWallet = async () => {
+    if (!userId || !walletAddress || !password) {
+      Alert.alert('Error', 'Please provide all required information');
+      return;
+    }
+
+    try {
+      const authSuccess = await authenticate();
+      if (authSuccess) {
+        await unlockWallet({ userId, walletAddress, password });
+        setLockAccountEnabled(false);
+        await SecureStore.setItemAsync('TowFAEnabled', 'false');
+        setShowPasswordModal(false);
+        setPassword('');
+        setAttemptingUnlock(false);
+        showSuccessModal('Account Unlocked', 'Your account has been unlocked successfully.');
+      } else {
+        Alert.alert(
+          'Authentication Failed',
+          'Biometric verification is required to unlock your account.',
+        );
+        setShowPasswordModal(false);
+        setPassword('');
+        setAttemptingUnlock(false);
+      }
+    } catch (error) {
+      console.error('Error unlocking wallet:', error);
+      Alert.alert('Error', 'Failed to unlock wallet. Please check your password and try again.');
+      setShowPasswordModal(false);
+      setPassword('');
+      setAttemptingUnlock(false);
+    }
+  };
+
+  const navigateToActions = () => {
+    router.push('/screens/action.screen');
+  };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView className="flex-1 bg-white justify-center items-center">
+        <Animated.View entering={FadeIn.duration(600)}>
+          <ActivityIndicator size="large" color="#A855F7" />
+        </Animated.View>
+      </SafeAreaView>
+    );
+  }
+
+  const renderBiometricAlert = () => {
+    if (!isBiometricSupported || !isBiometricEnrolled) {
+      return (
+        <View className="bg-yellow-50 px-4 py-3 mb-4 rounded-lg border border-yellow-200">
+          <Text className="text-yellow-800">
+            {!isBiometricSupported
+              ? "Your device doesn't support biometric authentication. Some security features may be limited."
+              : 'Please set up biometric authentication in your device settings to use all security features.'}
+          </Text>
+        </View>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <SafeAreaView className="flex-1 bg-white">
+      <Animated.View
+        entering={FadeIn.duration(600)}
+        className="absolute top-0 left-0 right-0 z-40 bg-transparent"
+        style={{ paddingTop: insets.top }}
+      >
+        <Header
+          title="Settings"
+          onBackPress={handleBack}
+          isLandscape={isLandscape}
+          backEnabled={backEnabled}
+          historyEnabled={false}
+        />
+      </Animated.View>
+
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingTop: insets.top + 60,
+          paddingBottom: insets.bottom + 20,
+        }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Animated.View
+          entering={FadeInDown.duration(600).delay(200)}
+          className={`flex-1 ${isLandscape ? 'px-6' : 'px-4'} pb-4`}
+        >
+          {renderBiometricAlert()}
+
+          {/* Security Section */}
+          <View className="mb-6">
+            <Text className="text-gray-500 text-sm mb-2 uppercase font-medium">Security</Text>
+            <View className="bg-gray-50 rounded-xl overflow-hidden">
+              {/* Two Factor Verification */}
+              <View className="flex-row justify-between items-center py-4 px-4 border-b border-gray-100">
+                <View className="flex-row items-center">
+                  <View className="w-8 h-8 bg-purple-100 rounded-full items-center justify-center mr-3">
+                    <Feather name="lock" size={16} color="#A855F7" />
+                  </View>
+                  <View>
+                    <Text className="text-black text-base">Two-Factor Verification</Text>
+                    <Text className="text-gray-500 text-xs mt-1">Use biometrics to secure your account</Text>
+                  </View>
+                </View>
+                <Switch
+                  trackColor={{ false: '#E5E7EB', true: '#C4B5FD' }}
+                  thumbColor={twoFactorEnabled ? '#A855F7' : '#ffffff'}
+                  ios_backgroundColor="#E5E7EB"
+                  onValueChange={(value) => handleToggle('twoFactor', value)}
+                  value={twoFactorEnabled}
+                  disabled={isEnabling2FA || isDisabling2FA}
+                />
+              </View>
+
+              {/* Lock App */}
+              <View className="flex-row justify-between items-center py-4 px-4 border-b border-gray-100">
+                <View className="flex-row items-center">
+                  <View className="w-8 h-8 bg-purple-100 rounded-full items-center justify-center mr-3">
+                    <Feather name="smartphone" size={16} color="#A855F7" />
+                  </View>
+                  <View>
+                    <Text className="text-black text-base">Lock App</Text>
+                    <Text className="text-gray-500 text-xs mt-1">Require authentication at app start</Text>
+                  </View>
+                </View>
+                <Switch
+                  trackColor={{ false: '#E5E7EB', true: '#C4B5FD' }}
+                  thumbColor={lockAppEnabled ? '#A855F7' : '#ffffff'}
+                  ios_backgroundColor="#E5E7EB"
+                  onValueChange={(value) => handleToggle('lockApp', value)}
+                  value={lockAppEnabled}
+                  disabled={isLoading}
+                />
+              </View>
+
+              {/* Lock Account */}
+              <View className="flex-row justify-between items-center py-4 px-4">
+                <View className="flex-row items-center">
+                  <View className="w-8 h-8 bg-purple-100 rounded-full items-center justify-center mr-3">
+                    <Feather name="user-x" size={16} color="#A855F7" />
+                  </View>
+                  <View>
+                    <Text className="text-black text-base">Lock Account</Text>
+                    <Text className="text-gray-500 text-xs mt-1">Prevent transactions until unlocked</Text>
+                  </View>
+                </View>
+                <Switch
+                  trackColor={{ false: '#E5E7EB', true: '#C4B5FD' }}
+                  thumbColor={lockAccountEnabled ? '#A855F7' : '#ffffff'}
+                  ios_backgroundColor="#E5E7EB"
+                  onValueChange={(value) => handleToggle('lockAccount', value)}
+                  value={lockAccountEnabled}
+                  disabled={isLocking || isUnlocking || attemptingUnlock}
+                />
+              </View>
+            </View>
+          </View>
+
+          {/* Activity Section */}
+          <View className="mb-6">
+            <Text className="text-gray-500 text-sm mb-2 uppercase font-medium">Activity</Text>
+            <View className="bg-gray-50 rounded-xl overflow-hidden">
+              <TouchableOpacity
+                className="flex-row justify-between items-center py-4 px-4"
+                onPress={navigateToActions}
+              >
+                <View className="flex-row items-center">
+                  <View className="w-8 h-8 bg-purple-100 rounded-full items-center justify-center mr-3">
+                    <Feather name="activity" size={16} color="#A855F7" />
+                  </View>
+                  <Text className="text-black text-base">Action Log</Text>
+                </View>
+                <Feather name="chevron-right" size={20} color="#9CA3AF" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <LinearGradient
+            colors={['#A855F7', '#F472B6']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{
+              height: 2,
+              marginVertical: 20,
+              borderRadius: 2,
+              opacity: 0.7,
+            }}
+          />
+
+          <View className="items-center mt-6">
+            <Text className="text-gray-400 text-sm">Version 1.0.0</Text>
+          </View>
+        </Animated.View>
+      </ScrollView>
+
+      {/* Password Prompt Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={showPasswordModal}
+        onRequestClose={() => {
+          setShowPasswordModal(false);
+          setPassword('');
+          setAttemptingUnlock(false);
+        }}
+      >
+        <View className="flex-1 justify-center items-center bg-black/50">
+          <View className="bg-white rounded-2xl p-6 w-4/5">
+            <Text className="text-lg font-semibold mb-4">Enter Password</Text>
+            <Text className="text-gray-500 mb-4">
+              Enter your password to unlock your account. You also need to verify with biometrics.
+            </Text>
+            <TextInput
+              className="border border-gray-300 rounded-lg p-3 mb-4"
+              placeholder="Password"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
+            <View className="flex-row justify-end space-x-4">
+              <TouchableOpacity
+                onPress={() => {
+                  setShowPasswordModal(false);
+                  setPassword('');
+                  setAttemptingUnlock(false);
+                }}
+              >
+                <Text className="text-gray-500 font-medium mx-2">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleUnlockWallet}
+                disabled={isUnlocking || !password}
+              >
+                <Text
+                  className={`font-medium ${
+                    isUnlocking || !password ? 'text-gray-400' : 'text-purple-600'
+                  }`}
+                >
+                  {isUnlocking ? 'Unlocking...' : 'Unlock'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Success Modal */}
+      <SuccessModal
+        isVisible={successModal.isVisible}
+        onClose={closeSuccessModal}
+        title={successModal.title}
+        message={successModal.message}
+      />
+
+      <StatusBar style="dark" translucent={false} backgroundColor="white" />
+    </SafeAreaView>
+  );
+};
+
+export default SettingsScreen;

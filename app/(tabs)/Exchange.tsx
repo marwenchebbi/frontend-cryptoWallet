@@ -10,6 +10,7 @@ import {
   ScrollView,
   Platform,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
@@ -156,6 +157,7 @@ const Exchange: React.FC = () => {
   const updateWalletData = () => {
     priceRefetch();
     walletRefetch();
+    setErrors({})
   };
 
   // Handle validation, biometric auth, and show confirmation modal
@@ -178,7 +180,7 @@ const Exchange: React.FC = () => {
     if (isBiometricSupported) {
       const isAuthenticated = await authenticate();
       if (!isAuthenticated) {
-        setErrors({ amount: biometricError || 'Biometric verification failed' });
+        Alert.prompt('Biometric verification failed')
         return;
       }
     }
@@ -397,14 +399,7 @@ const Exchange: React.FC = () => {
                 )}
 
                 {/* Validation errors */}
-                {errors.amount && (
-                  <Animated.Text
-                    entering={FadeIn.duration(600).delay(1200)}
-                    className="text-red-500 text-xs mb-4 text-center"
-                  >
-                    {errors.amount}
-                  </Animated.Text>
-                )}
+
                 {errors.inputCurrency && (
                   <Animated.Text
                     entering={FadeIn.duration(600).delay(1300)}
@@ -430,12 +425,12 @@ const Exchange: React.FC = () => {
                   </Animated.Text>
                 )}
                 {error &&   (
-                  <Animated.Text
-                    entering={FadeIn.duration(600).delay(1500)}
+                  <Text
+                    
                     className="text-red-500 text-xs mb-4 text-center"
                   >
                     {error.message}
-                  </Animated.Text>
+                  </Text>
                 )}
 
                 <Animated.View entering={FadeInDown.duration(600).delay(1600)}>

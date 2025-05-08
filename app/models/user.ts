@@ -34,4 +34,5 @@ export interface UserFormData {
     walletAddress: string;
     prxBalance: number;
     usdtBalance: number;
+    isWalletLocked : boolean
   }

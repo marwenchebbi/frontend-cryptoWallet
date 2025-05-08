@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,17 +14,18 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 // Custom hooks
 import { useOrientation } from '../hooks/shared/useOrientation';
 import { useHandleBack } from '../hooks/shared/useHandleBack';
-
 
 // Components
 import Header from '@/app/components/Header';
 import Button from '@/app/components/Button';
 import ConfirmationModal from '../components/confirmationModal';
 import BalanceDetails from '@/app/components/BalancesDetails';
+import QRCodeScanner from '../components/QRCodeScanner';
 
 // Libraries & utils
 import * as SecureStore from 'expo-secure-store';
@@ -38,7 +39,6 @@ import { useGetWalletInfo } from '../hooks/wallet-info-hooks/balances.hooks';
 import { useGetPrice } from '../hooks/transactions-hooks/price.hooks';
 
 // Types
-
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBiometricAuth } from '../hooks/shared/useBiometricAuth';
 import { TransactionType, TransferData } from '../models/transaction';
@@ -48,7 +48,10 @@ const TransferScreen: React.FC = () => {
   const router = useRouter();
   const isLandscape = useOrientation();
   const handleBack = useHandleBack();
-  const { isBiometricSupported, authenticate, error: biometricError } = useBiometricAuth(); // Added
+  const { isBiometricSupported, authenticate, error: biometricError } = useBiometricAuth();
+
+  // State for scanning
+  const [scanning, setScanning] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState<TransferData>({
@@ -66,6 +69,9 @@ const TransferScreen: React.FC = () => {
 
   // Modal state
   const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
+
+  // Track if animations have run
+  const hasAnimated = useRef(false);
 
   // Dynamic hook depending on coin type
   const {
@@ -110,6 +116,16 @@ const TransferScreen: React.FC = () => {
     setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
+  // Handle QR code scan result
+  const handleBarCodeScanned = (data: string) => {
+    handleInputChange('receiverAddress', data);
+  };
+
+  // Handle opening the QR code scanner
+  const handleOpenScanner = () => {
+    setScanning(true);
+  };
+
   // Called when user confirms the transfer
   const submitTransfer = () => {
     transferMutate(formData, {
@@ -151,7 +167,7 @@ const TransferScreen: React.FC = () => {
     if (isBiometricSupported) {
       const isAuthenticated = await authenticate();
       if (!isAuthenticated) {
-        setErrors({ amount : biometricError || 'Biometric verification failed' }); // this is only to handle the error 
+        setErrors({ amount: biometricError || 'Biometric verification failed' });
         return;
       }
     }
@@ -183,7 +199,7 @@ const TransferScreen: React.FC = () => {
   }
 
   // Refetch wallet and price information (pull-to-refresh)
-  const updateWAlletData = () => {
+  const updateWalletData = () => {
     priceRefetch();
     walletRefetch();
   };
@@ -197,9 +213,10 @@ const TransferScreen: React.FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
+      {/* Header (always visible) */}
       <Animated.View
-        entering={FadeIn.duration(600)}
-        className="absolute top-0 left-0 right-0 z-40 bg-transparent"
+        entering={hasAnimated.current ? undefined : FadeIn.duration(600)}
+        className="absolute top-0 left-0 right-0 z-40 bg-white"
         style={{ paddingTop: insets.top }}
       >
         <Header
@@ -210,23 +227,42 @@ const TransferScreen: React.FC = () => {
           historyEnabled={true}
         />
       </Animated.View>
+
+      {/* QR Code Scanner (conditionally visible) */}
+      <View className="absolute top-0 left-0 right-0 bottom-0 z-50" style={{ display: scanning ? 'flex' : 'none' }}>
+        <QRCodeScanner
+          onScan={handleBarCodeScanned}
+          onClose={() => setScanning(false)}
+        />
+      </View>
+
+      {/* Main UI (conditionally visible) */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        style={{ opacity: scanning ? 0 : 1 }} // Hide when scanning
       >
         <Animated.ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: 'center',
+            paddingBottom: insets.bottom + 50, // Offset for tab bar and keyboard
+          }}
           keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl
               refreshing={isWalletLoading || isPriceLoading}
-              onRefresh={updateWAlletData}
+              onRefresh={updateWalletData}
             />
           }
         >
           {/* Display balance info */}
-          <Animated.View entering={FadeInDown.duration(600).delay(200)} className="items-center mt-20">
+          <Animated.View
+            entering={hasAnimated.current ? undefined : FadeInDown.duration(600).delay(200)}
+            className="items-center mt-20"
+            onLayout={() => (hasAnimated.current = true)} // Mark animations as complete
+          >
             <BalanceDetails
               walletInfo={walletInfo}
               selectedBalance={selectedBalance}
@@ -240,7 +276,10 @@ const TransferScreen: React.FC = () => {
 
           {/* Refresh tip */}
           {!isWalletLoading && (
-            <Animated.View entering={FadeInDown.duration(600).delay(300)} className="mt-4 p-2 bg-white rounded">
+            <Animated.View
+              entering={hasAnimated.current ? undefined : FadeInDown.duration(600).delay(300)}
+              className="mt-4 p-2 bg-white rounded"
+            >
               <Text className="text-pink-700 text-center text-sm">
                 Swipe down to refresh your balance details
               </Text>
@@ -248,9 +287,7 @@ const TransferScreen: React.FC = () => {
           )}
 
           {/* Transfer form container */}
-          <View
-            className="flex-1 items-center justify-center my-8"
-          >
+          <View className="flex-1 items-center justify-center my-8">
             <LinearGradient
               colors={['#A855F7', '#F472B6']}
               start={{ x: 0, y: 0 }}
@@ -259,7 +296,9 @@ const TransferScreen: React.FC = () => {
               style={styles.gradient}
             >
               <View className="bg-white rounded-3xl p-6" style={styles.transferContainer}>
-                <Animated.View entering={FadeInDown.duration(600).delay(500)}>
+                <Animated.View
+                  entering={hasAnimated.current ? undefined : FadeInDown.duration(600).delay(500)}
+                >
                   <Text
                     className={`text-black text-center font-semibold ${
                       isLandscape ? 'text-lg' : 'text-xl'
@@ -270,7 +309,10 @@ const TransferScreen: React.FC = () => {
                 </Animated.View>
 
                 {/* Toggle between PRX / USDT */}
-                <Animated.View entering={FadeInDown.duration(600).delay(600)} className="flex-row items-center mb-4">
+                <Animated.View
+                  entering={hasAnimated.current ? undefined : FadeInDown.duration(600).delay(600)}
+                  className="flex-row items-center mb-4"
+                >
                   <TouchableOpacity
                     onPress={() => setSelectedCoin(selectedCoin === 'PRX' ? 'USDT' : 'PRX')}
                   >
@@ -301,23 +343,28 @@ const TransferScreen: React.FC = () => {
                   </LinearGradient>
                 </Animated.View>
                 {errors.amount && (
-                  <Animated.View entering={FadeIn.duration(600).delay(700)}>
+                  <Animated.View
+                    entering={hasAnimated.current ? undefined : FadeIn.duration(600).delay(700)}
+                  >
                     <Text className="text-red-500 text-xs mb-4">{errors.amount}</Text>
                   </Animated.View>
                 )}
 
-                {/* Recipient address */}
-                <Animated.View entering={FadeInDown.duration(600).delay(800)} className="mb-6">
+                {/* Recipient address with QR code scan icon */}
+                <Animated.View
+                  entering={hasAnimated.current ? undefined : FadeInDown.duration(600).delay(800)}
+                  className="mb-10"
+                >
                   <Text className="text-gray-500 text-sm mb-2">Recipient address</Text>
                   <LinearGradient
                     colors={['#A855F7', '#F472B6']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
-                    className="rounded-full p-[2px]"
+                    className="rounded-full p-[2px] flex-row items-center"
                     style={styles.gradient}
                   >
                     <TextInput
-                      className={`w-full bg-white text-black ${
+                      className={`flex-1 bg-white text-black ${
                         isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
                       }`}
                       style={styles.input}
@@ -327,9 +374,14 @@ const TransferScreen: React.FC = () => {
                       onChangeText={(text) => handleInputChange('receiverAddress', text)}
                       autoCapitalize="none"
                     />
+                    <TouchableOpacity onPress={handleOpenScanner} className="p-2">
+                      <MaterialCommunityIcons name="qrcode-scan" size={24} color="white" />
+                    </TouchableOpacity>
                   </LinearGradient>
                   {errors.receiverAddress && (
-                    <Animated.View entering={FadeIn.duration(600).delay(900)}>
+                    <Animated.View
+                      entering={hasAnimated.current ? undefined : FadeIn.duration(600).delay(900)}
+                    >
                       <Text className="text-red-500 text-xs mt-1 text-center">
                         {errors.receiverAddress}
                       </Text>
@@ -339,21 +391,27 @@ const TransferScreen: React.FC = () => {
 
                 {/* Sender address or server errors */}
                 {errors.senderAddress && (
-                  <Animated.View entering={FadeIn.duration(600).delay(1000)}>
+                  <Animated.View
+                    entering={hasAnimated.current ? undefined : FadeIn.duration(600).delay(1000)}
+                  >
                     <Text className="text-red-500 text-xs mb-4 text-center">
                       {errors.senderAddress}
                     </Text>
                   </Animated.View>
                 )}
                 {errors.amount && (
-                  <Animated.View entering={FadeIn.duration(600).delay(1100)}>
+                  <Animated.View
+                    entering={hasAnimated.current ? undefined : FadeIn.duration(600).delay(1100)}
+                  >
                     <Text className="text-red-500 text-xs mb-4 text-center">
                       {errors.amount}
                     </Text>
                   </Animated.View>
                 )}
                 {transferError && (
-                  <Animated.View entering={FadeIn.duration(600).delay(1100)}>
+                  <Animated.View
+                    entering={hasAnimated.current ? undefined : FadeIn.duration(600).delay(1100)}
+                  >
                     <Text className="text-red-500 text-xs mb-4 text-center">
                       {transferError.message}
                     </Text>
@@ -361,7 +419,9 @@ const TransferScreen: React.FC = () => {
                 )}
 
                 {/* Transfer button */}
-                <Animated.View entering={FadeInDown.duration(600).delay(1200)}>
+                <Animated.View
+                  entering={hasAnimated.current ? undefined : FadeInDown.duration(600).delay(1200)}
+                >
                   <Button
                     title="Transfer"
                     onPress={handleTransfer}

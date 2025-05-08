@@ -14,7 +14,6 @@ const CryptoWalletScreen = () => {
   const router = useRouter();
   const isLandscape = useOrientation();
 
-
   const [auth, setAuth] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -31,6 +30,7 @@ const CryptoWalletScreen = () => {
   if (auth) {
     return <Redirect href="/(tabs)/Home" />;
   }
+
 
   return (
     <LinearGradient
@@ -157,7 +157,7 @@ Manage your custom asset effortlessly and stay ahead in the digital economy.
                 paddingHorizontal: isLandscape ? 16 : 24,
                 marginRight: 16,
               }}
-              onPress={() => router.push('/screens/email-verification.screen')}
+              onPress={() => router.replace('/screens/email-verification.screen')}
             >
               <Text
                 style={{
@@ -178,7 +178,7 @@ Manage your custom asset effortlessly and stay ahead in the digital economy.
                   paddingHorizontal: isLandscape ? 16 : 24,
                   backgroundColor: 'black',
                 }}
-                onPress={() => router.push('/screens/login.screen')}
+                onPress={() => router.replace(auth ? '/(tabs)/Home' : '/screens/login.screen')}
               >
                 <Text
                   style={{
@@ -194,7 +194,7 @@ Manage your custom asset effortlessly and stay ahead in the digital economy.
           </View>
         </Animated.View>
 
-        <StatusBar style="light" translucent={false} backgroundColor="transparent" />
+        <StatusBar style="dark" translucent={false}  />
       </SafeAreaView>
     </LinearGradient>
   );

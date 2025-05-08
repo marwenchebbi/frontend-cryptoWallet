@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { IP_ADDRESS } from '@/app/models/types';
+import axiosInstance from '@/app/interceptors/axiosInstance';
 
 interface VerifyEmailResponse {
   message: string;
@@ -13,7 +14,7 @@ interface VerifyEmailData {
 }
 
 const verifyEmail = async (data: VerifyEmailData): Promise<VerifyEmailResponse> => {
-  const response = await axios.get(`http://${IP_ADDRESS}:3000/auth/verify-email`, {
+  const response = await axiosInstance.get(`/auth/verify-email`, {
     params: { token: data.token },
   });
   return response.data;

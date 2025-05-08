@@ -2,41 +2,49 @@ import { useMutation } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';
 import { profileSchema } from '../../validators/auth.validator';
 import { validateForm } from '../../validators/helpers';
-import { IP_ADDRESS, UpdateProfileData, UpdateProfileResponse } from '@/app/models/types';
-
+import { IP_ADDRESS } from '@/app/models/types';
+import { UpdateProfileData, UpdateProfileResponse } from '@/app/models/user';
+import axios from 'axios';
+import { ErrorResponse } from '@/app/models/error';
+import axiosInstance from '@/app/interceptors/axiosInstance';
 
 const updateProfile = async (data: UpdateProfileData): Promise<UpdateProfileResponse> => {
-  // Validate input using profileSchema
+  // Validation du formulaire avec profileSchema
   const { success, errors } = await validateForm(data, profileSchema);
   if (!success) {
-    throw new Error(JSON.stringify(errors)); // Pass validation errors
+    throw new Error(JSON.stringify(errors));
   }
 
-  
   const token = await SecureStore.getItemAsync('accessToken');
   if (!token) {
     throw new Error('No access token found');
   }
 
-  const response = await fetch(`http://${IP_ADDRESS}:3000/auth/me`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(data),
-  });
+  try {
+    const response = await axiosInstance.put<UpdateProfileResponse>(
+      `/auth/me`,
+      data,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.errorDetails?.message || `Failed to update profile: ${response.status}`);
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.data) {
+      const errorData: ErrorResponse = error.response.data;
+      const message = errorData.errorDetails?.message || 'Failed to update profile';
+      throw new Error(message);
+    }
+    throw new Error('Failed to update profile');
   }
-
-  return response.json();
 };
 
 export const useUpdateProfile = () => {
   return useMutation<UpdateProfileResponse, Error, UpdateProfileData>({
     mutationFn: updateProfile,
   });
-};  
+};

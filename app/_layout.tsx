@@ -34,6 +34,7 @@ export default function RootLayout() {
             <Stack.Screen name="screens/signup.screen" options={{ headerShown: false }} />
             <Stack.Screen name="screens/splash.screen" options={{ headerShown: false }} />
             <Stack.Screen name="screens/email-verification.screen" options={{ headerShown: false }} />
+            
           </>
         )}
 
@@ -42,6 +43,8 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="screens/app-lock.screen" options={{ headerShown: false }} />
             <Stack.Screen name="screens/history.screen" options={{ headerShown: false }} />
+            <Stack.Screen name="screens/action.screen.tsx" options={{ headerShown: false }} />
+            <Stack.Screen name="screens/settings.screen.tsx" options={{ headerShown: false }} />
           </>
         )}
 

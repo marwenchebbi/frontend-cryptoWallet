@@ -45,7 +45,7 @@ const BalanceDetails: React.FC<BalanceDetailsProps> = ({
       </Animated.Text>
       <Animated.View entering={FadeInDown.duration(600).delay(600)}>
         <TouchableOpacity
-          className="flex-row items-center bg-gray-100 rounded-full px-4 py-2 mt-4"
+          className="flex-row items-center bg-purple-200 rounded-full px-4 py-2 mt-4"
           onPress={onToggleBalance}
         >
           <View className="w-2 h-2 bg-black rounded-full mr-2" />
