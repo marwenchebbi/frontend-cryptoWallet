@@ -1,19 +1,35 @@
 // components/TransactionHistory.tsx
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 
 import TransactionItem from './TransactionItem';
+import * as SecureStore from 'expo-secure-store';
 
 import { useTransactionHistory } from '@/app/hooks/transactions-hooks/history.hooks';
 import {  TransactionType } from '../models/transaction';
 
 interface TransactionHistoryProps {
-  userId: string;
   onLoadMore: () => void;
 }
 
-const TransactionHistory: React.FC<TransactionHistoryProps> = ({ userId, onLoadMore }) => {
-  const { data, isLoading, error } = useTransactionHistory(userId, 1, 3, '-createdAt');
+const TransactionHistory: React.FC<TransactionHistoryProps> = ({  onLoadMore }) => {
+  const { data, isLoading, error,refetch } = useTransactionHistory( 1, 3, '-createdAt');
+  const [userId,setUserId] = useState<string|null>(null)
+  
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const userId = await SecureStore.getItemAsync('userId');
+      setUserId(userId);
+      console.log(userId)
+    };
+    fetchUserId();
+  }, []);
+
+    // Refetch wallet, price, and chart information
+    const updateWalletData = useCallback(() => {
+      refetch();
+      console.log('refetched successfully')
+    }, [refetch]);
 
   if (isLoading) {
     return <ActivityIndicator size="small" color="#A855F7" />;
@@ -30,12 +46,12 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ userId, onLoadM
   return (
     <View>
       {data.transactions.slice(0, 3).map((transaction: any, index: number) => (
-        
+
         <TransactionItem
           key={transaction.id || index}
           transaction={transaction}
-          userId={userId}
           transactionType={(transaction.received_amount) ? TransactionType.TRADING : TransactionType.TRANSFER}
+          userId={userId}
         />
       ))}
       <TouchableOpacity onPress={onLoadMore}>

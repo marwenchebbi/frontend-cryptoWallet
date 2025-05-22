@@ -14,11 +14,14 @@ const buyPRX = async (data: TransferData): Promise<boolean> => {
         'Content-Type': 'application/json',
       },
     });
-    return response.status === 200 || response.status === 201;
+    return true
   } catch (error: any) {
-    const errorData: ErrorResponse = error.response.data;
-    const message = errorData.errorDetails?.message || 'Account locked, please login again';
-    throw new Error(message);
+    if (error.response && error.response.data) {
+      const errorData: ErrorResponse = error.response.data;
+      const message = errorData.errorDetails?.message ;
+      throw new Error(message);
+    }
+    throw new Error('');
   }
 };
 
@@ -31,11 +34,14 @@ const sellPRX = async (data: TransferData): Promise<boolean> => {
         'Content-Type': 'application/json',
       },
     });
-    return response.status === 200 || response.status === 201;
+    return true
   } catch (error: any) {
-    const errorData: ErrorResponse = error.response.data;
-    const message = errorData.errorDetails?.message || 'Account locked, please login again';
-    throw new Error(message);
+    if (error.response && error.response.data) {
+      const errorData: ErrorResponse = error.response.data;
+      const message = errorData.errorDetails?.message ;
+      throw new Error(message);
+    }
+    throw new Error('');
   }
 };
 

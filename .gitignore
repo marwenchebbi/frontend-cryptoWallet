@@ -37,4 +37,5 @@ yarn-error.*
 
 app-example
 
-
+#
+./app/models/types.ts

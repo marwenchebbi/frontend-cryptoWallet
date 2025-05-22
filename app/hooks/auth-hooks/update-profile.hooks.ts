@@ -15,10 +15,7 @@ const updateProfile = async (data: UpdateProfileData): Promise<UpdateProfileResp
     throw new Error(JSON.stringify(errors));
   }
 
-  const token = await SecureStore.getItemAsync('accessToken');
-  if (!token) {
-    throw new Error('No access token found');
-  }
+
 
   try {
     const response = await axiosInstance.put<UpdateProfileResponse>(
@@ -27,7 +24,7 @@ const updateProfile = async (data: UpdateProfileData): Promise<UpdateProfileResp
       {
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+
         },
       }
     );

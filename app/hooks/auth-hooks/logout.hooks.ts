@@ -20,7 +20,6 @@ const logout = async (): Promise<LogoutResponse> => {
       {
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
       }
     );
@@ -45,6 +44,8 @@ export const useLogout = () => {
         SecureStore.deleteItemAsync('refreshToken'),
         SecureStore.deleteItemAsync('walletAddress'),
         SecureStore.deleteItemAsync('userId'),
+        SecureStore.deleteItemAsync('TowFAEnabled'),
+        SecureStore.deleteItemAsync('isWalletLocked')
       ]);
       console.log(data.message);
     },

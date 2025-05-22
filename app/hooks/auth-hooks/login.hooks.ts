@@ -4,14 +4,15 @@ import { IP_ADDRESS } from '../../models/types';
 import { LoginData, LoginResponse } from '@/app/models/auth';
 import { ErrorResponse } from '@/app/models/error';
 import axiosInstance from '@/app/interceptors/axiosInstance';
+import axios from 'axios';
 
 const loginUser = async (data: LoginData): Promise<LoginResponse> => {
   console.log(IP_ADDRESS);
-  const url = `/auth/login`;
+  const url = `http://${IP_ADDRESS}:3000/auth/login`;
   console.log(url)
 
   try {
-    const response = await axiosInstance.post<LoginResponse>(url, data, {
+    const response = await axios.post<LoginResponse>(url, data, {
       headers: {
         'Content-Type': 'application/json',
       },

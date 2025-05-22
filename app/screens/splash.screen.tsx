@@ -157,7 +157,7 @@ Manage your custom asset effortlessly and stay ahead in the digital economy.
                 paddingHorizontal: isLandscape ? 16 : 24,
                 marginRight: 16,
               }}
-              onPress={() => router.replace('/screens/email-verification.screen')}
+              onPress={() => router.replace('/screens/payment.screen')}
             >
               <Text
                 style={{

@@ -18,3 +18,21 @@ export const transcationSchema = Yup.object().shape({
     .optional()
     .oneOf(['USDT', 'PRX'], 'Input currency must be either USDT or PRX'),
 });
+
+//this schema is used for any type of transactions 
+export const transferSchema = Yup.object().shape({
+  amount: Yup.string()
+    .required('Amount is required')
+    .matches(/^[0-9]+(\.[0-9]+)?$/, 'Amount must be a valid number')
+    .test('positive', 'Amount must be greater than 0', (value) => parseFloat(value || '0') > 0),
+  receiverAddress: Yup.string()
+  .required('receiver address is required')
+    .matches(/^0x[a-fA-F0-9]{40}$/, {
+      message: 'Invalid recipient address format',
+      excludeEmptyString: true,
+    }),
+  senderAddress: Yup.string().required('Sender address is required'),
+  inputCurrency: Yup.string()
+    .optional()
+    .oneOf(['USDT', 'PRX'], 'Input currency must be either USDT or PRX'),
+});

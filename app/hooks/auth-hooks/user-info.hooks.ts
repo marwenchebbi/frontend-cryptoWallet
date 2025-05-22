@@ -7,16 +7,12 @@ import { ErrorResponse } from '@/app/models/error';
 import axiosInstance from '../../interceptors/axiosInstance';
 
 const fetchUserInfo = async (): Promise<UserInfo> => {
-  const token = await SecureStore.getItemAsync('accessToken');
-  if (!token) {
-    throw new Error('No access token found');
-  }
 
   try {
     const response = await axiosInstance.get(`/auth/me`, {
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
+
       },
     });
 

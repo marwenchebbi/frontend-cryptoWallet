@@ -60,7 +60,7 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ transactionType: propTran
 
   // Fetch transaction history with filter
   const { data, isLoading, error, refetch } = useTransactionHistory(
-    userId || '',
+
     page,
     limit,
     sort,

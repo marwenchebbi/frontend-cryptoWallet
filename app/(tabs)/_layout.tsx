@@ -65,7 +65,7 @@ const TabsLayout = () => {
                     tabBarLabel: 'Transfer',
                     tabBarIcon: ({ color }) => (
                         <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-                            <MaterialIcons name="currency-exchange" size={24} color={color} />
+                            <FontAwesome6 name="money-bill-transfer" size={22} color={color} />
                         </View>
                     ),
                 }}
@@ -76,7 +76,7 @@ const TabsLayout = () => {
                     tabBarLabel: 'Exchange',
                     tabBarIcon: ({ color }) => (
                         <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-                            <FontAwesome6 name="clipboard-list" size={22} color={color} />
+                            <MaterialIcons name="currency-exchange" size={24} color={color} />
                         </View>
                     ),
                 }}

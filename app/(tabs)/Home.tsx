@@ -26,20 +26,21 @@ import TransactionHistory from '../components/TransactionHistory';
 import { TransactionType } from '../models/transaction';
 import TokenPriceChart from '../components/TokenPriceChart';
 import { usePriceHistory } from '../hooks/price-history-hooks/price-history.hooks';
+import { useTransactionHistory } from '../hooks/transactions-hooks/history.hooks';
 
 const Home: React.FC = () => {
   const insets = useSafeAreaInsets();
   const isLandscape = useOrientation();
   const router = useRouter();
-    const { refetch } = usePriceHistory();
+    const { refetch  } = usePriceHistory();
+    const {refetch : historyRef} = useTransactionHistory( 1, 3, '-createdAt');
   
 
   // State for user ID and wallet address
   const [userId, setUserId] = useState<string | null>(null);
   const [senderAddress, setSenderAddress] = useState<string | null>(null);
 
-  // State to hold chart refetch function
-  const [chartRefetch, setChartRefetch] = useState<(() => void) | null>(null);
+
 
   // Fetch user ID and wallet address
   useEffect(() => {
@@ -70,27 +71,27 @@ const Home: React.FC = () => {
     refetch: priceRefetch,
   } = useGetPrice();
 
-  // Handler to receive chart refetch function from TokenPriceChart
-  const handleChartRefetch = useCallback((refetchFunc: () => void) => {
-    setChartRefetch(() => refetchFunc);
-  }, []);
+
 
   // Refetch wallet, price, and chart information
   const updateWalletData = useCallback(() => {
     walletRefetch();
     priceRefetch();
     refetch();
-  }, [walletRefetch, priceRefetch, chartRefetch]);
+    historyRef()
+  }, [walletRefetch, priceRefetch, historyRef]);
 
   // Navigation handlers for action buttons
   const handleSend = () => router.push('/(tabs)/Transfer');
   const handleSell = () => router.push('/(tabs)/Exchange');
   const handleBuy = () => router.push('/(tabs)/Exchange');
   const handleLoadMore = () => {
-    router.push({
+    /*router.push({
       pathname: '/screens/history.screen',
       params: { transactionType: TransactionType.TRADING },
-    });
+    });*/
+
+    router.push('/screens/trade-token.screen')
   };
 
   // Loading state
@@ -197,7 +198,7 @@ const Home: React.FC = () => {
           entering={FadeInDown.duration(600).delay(500)}
           className="px-4 mt-6"
         >
-          <TransactionHistory userId={userId} onLoadMore={handleLoadMore} />
+          <TransactionHistory onLoadMore={handleLoadMore} />
         </Animated.View>
 
         {/* Price Chart Section */}

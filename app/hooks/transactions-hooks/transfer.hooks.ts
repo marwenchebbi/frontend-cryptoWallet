@@ -3,10 +3,12 @@ import axios from 'axios';
 import { IP_ADDRESS } from '../../models/types';
 import { TransferData } from '@/app/models/transaction';
 import axiosInstance from '@/app/interceptors/axiosInstance';
+import { ErrorResponse } from '@/app/models/error';
 
 // API call to transfer PRX tokens
 const transferTokens = async (data: TransferData): Promise<boolean> => {
-  const url = `transaction/transfer/prx`;
+  try {
+      const url = `transaction/transfer/prx`;
 
  
     const res = await axiosInstance.post(url, data, {
@@ -14,13 +16,16 @@ const transferTokens = async (data: TransferData): Promise<boolean> => {
         'Content-Type': 'application/json',
       },
     });
-
-    // Axios automatically parses the response, so we can directly check the status
-    if (res.status === 200 || res.status === 201) {
-      return true;
-    } else {
-      throw new Error(res.data.errorDetails?.message || 'Transfer failed');
+    return true
+  } catch (error: any) {
+    if (error.response && error.response.data) {
+      const errorData: ErrorResponse = error.response.data;
+      const message = errorData.errorDetails?.message || 'Failed to update profile';
+      throw new Error(message);
     }
+    throw new Error('Failed to update profile');
+  }
+
 
 };
 
@@ -28,7 +33,7 @@ const transferTokens = async (data: TransferData): Promise<boolean> => {
 const transferUSDT = async (data: TransferData): Promise<boolean> => {
   const url = `/transaction/transfer/usdt`;
 
-  try {
+
     const res = await axiosInstance.post(url, data, {
       headers: {
         'Content-Type': 'application/json',
@@ -41,10 +46,7 @@ const transferUSDT = async (data: TransferData): Promise<boolean> => {
     } else {
       throw new Error(res.data.errorDetails?.message || 'Transfer failed');
     }
-  } catch (error: any) {
-    const errorMessage = error.response?.data?.errorDetails?.message || 'Transfer failed';
-    throw new Error(errorMessage);
-  }
+
 };
 
 // Custom hook for transferring PRX tokens

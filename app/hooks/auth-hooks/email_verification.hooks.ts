@@ -14,7 +14,7 @@ interface VerifyEmailData {
 }
 
 const verifyEmail = async (data: VerifyEmailData): Promise<VerifyEmailResponse> => {
-  const response = await axiosInstance.get(`/auth/verify-email`, {
+  const response = await axiosInstance.get(`http://${IP_ADDRESS}:3000/auth/verify-email`, {
     params: { token: data.token },
   });
   return response.data;

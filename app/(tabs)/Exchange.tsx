@@ -23,7 +23,8 @@ import { useHandleBack } from '../hooks/shared/useHandleBack';
 // UI Components
 import Header from '@/app/components/Header';
 import Button from '@/app/components/Button';
-import BalanceDetails from '@/app/components/BalancesDetails';
+
+import SuccessModal from '../components/SuccessModal'; // Import SuccessModal
 
 // Utilities and validation
 import * as SecureStore from 'expo-secure-store';
@@ -36,18 +37,18 @@ import { useGetWalletInfo } from '../hooks/wallet-info-hooks/balances.hooks';
 import { useGetPrice } from '../hooks/transactions-hooks/price.hooks';
 
 // Types and modals
-
-import ConfirmationModal from '../components/confirmationModal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useBiometricAuth } from '../hooks/shared/useBiometricAuth';
 import { TransactionType, TransferData } from '../models/transaction';
+import BalanceDetails from '../components/BalancesDetails';
+import ConfirmationModal from '../components/confirmationModal';
 
 const Exchange: React.FC = () => {
   const isLandscape = useOrientation();
   const handleBack = useHandleBack();
   const insets = useSafeAreaInsets();
-  const { isBiometricSupported, authenticate, error: biometricError } = useBiometricAuth(); // Added
+  const { isBiometricSupported, authenticate, error: biometricError } = useBiometricAuth();
 
   // Form state
   const [formData, setFormData] = useState<TransferData>({
@@ -60,8 +61,10 @@ const Exchange: React.FC = () => {
   // UI state
   const [selectedBalance, setSelectedBalance] = useState<'Proxym' | 'USDT'>('Proxym');
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
-  const [errors, setErrors] = useState<Partial<TransferData>>({});
+  const [errors, setErrors] = useState<Partial<TransferData & { general: string }>>({});
   const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false); // State for SuccessModal
+  const [successMessage, setSuccessMessage] = useState<string>(''); // Success message
 
   // Select mutation based on trade type
   const { mutate, isPending, error } = tradeType === 'buy' ? useBuyPRX() : useSellPRX();
@@ -109,8 +112,11 @@ const Exchange: React.FC = () => {
 
   // Handle input field changes
   const handleInputChange = (field: keyof TransferData, value: string) => {
+    
+
+    // Handle input field changes
     setFormData((prev) => ({ ...prev, [field]: value }));
-    setErrors({});
+    setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
   // Calculate equivalent amount using priceInfo
@@ -144,6 +150,12 @@ const Exchange: React.FC = () => {
             receiverAddress: '',
             inputCurrency: 'USDT',
           });
+          // Show success modal
+          setSuccessMessage(
+            `${tradeType === 'buy' ? 'Bought' : 'Sold'} ${equivalent} ${tradeType === 'buy' ? 'PRX' : 'USDT'} successfully using ${formData.amount} ${formData.inputCurrency}! 😎`
+          );
+          setIsSuccessModalVisible(true);
+           updateWalletData()
         }
       },
       onError: (err: any) => {
@@ -157,7 +169,7 @@ const Exchange: React.FC = () => {
   const updateWalletData = () => {
     priceRefetch();
     walletRefetch();
-    setErrors({})
+    setErrors({});
   };
 
   // Handle validation, biometric auth, and show confirmation modal
@@ -180,7 +192,7 @@ const Exchange: React.FC = () => {
     if (isBiometricSupported) {
       const isAuthenticated = await authenticate();
       if (!isAuthenticated) {
-        Alert.prompt('Biometric verification failed')
+        Alert.alert('Biometric verification failed');
         return;
       }
     }
@@ -267,9 +279,7 @@ const Exchange: React.FC = () => {
             )}
           </Animated.View>
 
-          <View
-            className="flex-1 items-center justify-center my-8"
-          >
+          <View className="flex-1 items-center justify-center my-8">
             <LinearGradient
               colors={['#A855F7', '#F472B6']}
               start={{ x: 0, y: 0 }}
@@ -375,7 +385,7 @@ const Exchange: React.FC = () => {
                 {/* Display equivalent amount */}
                 {formData.amount && !isPriceLoading && priceInfo && (
                   <Animated.Text
-                    entering={FadeIn.duration(600).delay(900)}
+                   
                     className="text-gray-700 text-sm mb-4 text-center"
                   >
                     {displayEquivalentAmount(equivalentAmount, formData.inputCurrency ?? 'USDT')}
@@ -383,7 +393,7 @@ const Exchange: React.FC = () => {
                 )}
                 {isPriceLoading && formData.amount && (
                   <Animated.Text
-                    entering={FadeIn.duration(600).delay(1000)}
+                   
                     className="text-gray-700 text-sm mb-4 text-center"
                   >
                     Calculating...
@@ -391,7 +401,7 @@ const Exchange: React.FC = () => {
                 )}
                 {priceError && (
                   <Animated.Text
-                    entering={FadeIn.duration(600).delay(1100)}
+                    
                     className="text-red-500 text-xs mb-4 text-center"
                   >
                     Error fetching price
@@ -399,10 +409,9 @@ const Exchange: React.FC = () => {
                 )}
 
                 {/* Validation errors */}
-
                 {errors.inputCurrency && (
                   <Animated.Text
-                    entering={FadeIn.duration(600).delay(1300)}
+                    
                     className="text-red-500 text-xs mb-4 text-center"
                   >
                     {errors.inputCurrency}
@@ -410,7 +419,7 @@ const Exchange: React.FC = () => {
                 )}
                 {errors.senderAddress && (
                   <Animated.Text
-                    entering={FadeIn.duration(600).delay(1400)}
+                   
                     className="text-red-500 text-xs mb-4 text-center"
                   >
                     {errors.senderAddress}
@@ -418,22 +427,23 @@ const Exchange: React.FC = () => {
                 )}
                 {errors.amount && (
                   <Animated.Text
-                    entering={FadeIn.duration(600).delay(1500)}
+                  
                     className="text-red-500 text-xs mb-4 text-center"
                   >
                     {errors.amount}
                   </Animated.Text>
                 )}
-                {error &&   (
-                  <Text
-                    
+                {errors.general && (
+                  <Animated.Text
+               
                     className="text-red-500 text-xs mb-4 text-center"
                   >
-                    {error.message}
-                  </Text>
+                    {errors.general}
+                  </Animated.Text>
                 )}
 
-                <Animated.View entering={FadeInDown.duration(600).delay(1600)}>
+
+                <Animated.View entering={FadeInDown.duration(600).delay(1800)}>
                   <Button
                     title="Exchange"
                     onPress={handleTrade}
@@ -455,6 +465,18 @@ const Exchange: React.FC = () => {
         onCancel={() => setConfirmModalVisible(false)}
         isPending={isPending}
         isLandscape={isLandscape}
+      />
+
+      {/* Success Modal */}
+      <SuccessModal
+        isVisible={isSuccessModalVisible}
+        title="Success!"
+        message={successMessage}
+        onClose={() => {
+          setIsSuccessModalVisible(false);
+          setSuccessMessage('');
+        }}
+        duration={2000}
       />
 
       <StatusBar style="dark" translucent={false} backgroundColor="white" />

@@ -47,7 +47,7 @@ export const useBiometricAuth = () => {
         await Linking.openURL('App-Prefs:');
       } else if (Platform.OS === 'android') {
         // Android: Open security settings
-        await Linking.openSettings();
+        await Linking.openSettings()
       }
     } catch (err) {
       setError('Failed to open device settings');

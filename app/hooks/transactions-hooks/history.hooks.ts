@@ -8,17 +8,13 @@ import axiosInstance from '@/app/interceptors/axiosInstance';
 
 // API function to fetch transaction history
 const fetchTransactionHistory = async (
-  userId: string,
   page: number,
   limit: number,
   sort: string,
   type?: TransactionType,
   filter?: string | null
 ): Promise<TransactionHistoryResponse> => {
-  const token = await SecureStore.getItemAsync('accessToken');
-  if (!token) {
-    throw new Error('No access token found');
-  }
+
 
   const queryParams = new URLSearchParams({
     page: page.toString(),
@@ -30,11 +26,11 @@ const fetchTransactionHistory = async (
 
   try {
     const response = await axiosInstance.get<TransactionHistoryResponse>(
-      `/transaction/user/${userId}?${queryParams.toString()}`,
+      `/transaction/user/?${queryParams.toString()}`,
       {
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+
         },
       }
     );
@@ -48,7 +44,7 @@ const fetchTransactionHistory = async (
 
 // Custom hook to fetch transaction history
 export const useTransactionHistory = (
-  userId: string,
+ 
   page: number = 1,
   limit: number = 10,
   sort: string = '-createdAt',
@@ -56,10 +52,9 @@ export const useTransactionHistory = (
   filter?: string | null
 ) => {
   return useQuery<TransactionHistoryResponse, Error>({
-    queryKey: ['transactionHistory', userId, page, limit, sort, type, filter],
-    queryFn: () => fetchTransactionHistory(userId, page, limit, sort, type, filter),
+    queryKey: ['transactionHistory',  page, limit, sort, type, filter],
+    queryFn: () => fetchTransactionHistory( page, limit, sort, type, filter),
     retry: 1,
     refetchOnWindowFocus: true,
-    enabled: !!userId, // Fetch only if userId is present
   });
 };

@@ -5,11 +5,11 @@ import { TransactionType } from '../models/transaction';
 
 interface TransactionItemProps {
   transaction: any;
-  userId: string;
+  userId: string|null;
   transactionType?: TransactionType;
 }
 
-const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, userId, transactionType }) => {
+const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, userId , transactionType }) => {
   // Determine if the user is the sender
   const isSender = transaction.sender_id && transaction.sender_id.toString() === userId;
 

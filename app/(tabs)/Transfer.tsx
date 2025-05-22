@@ -23,14 +23,14 @@ import { useHandleBack } from '../hooks/shared/useHandleBack';
 // Components
 import Header from '@/app/components/Header';
 import Button from '@/app/components/Button';
-import ConfirmationModal from '../components/confirmationModal';
-import BalanceDetails from '@/app/components/BalancesDetails';
+
 import QRCodeScanner from '../components/QRCodeScanner';
+import SuccessModal from '../components/SuccessModal'; // Import SuccessModal
 
 // Libraries & utils
 import * as SecureStore from 'expo-secure-store';
 import { validateForm } from '../validators/helpers';
-import { transcationSchema } from '../validators/transaction.validator';
+import { transcationSchema, transferSchema } from '../validators/transaction.validator';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 // API hooks
@@ -42,6 +42,8 @@ import { useGetPrice } from '../hooks/transactions-hooks/price.hooks';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBiometricAuth } from '../hooks/shared/useBiometricAuth';
 import { TransactionType, TransferData } from '../models/transaction';
+import BalanceDetails from '../components/BalancesDetails';
+import ConfirmationModal from '../components/confirmationModal';
 
 const TransferScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -65,10 +67,12 @@ const TransferScreen: React.FC = () => {
   const [selectedCoin, setSelectedCoin] = useState<'PRX' | 'USDT'>('PRX');
 
   // Error handling
-  const [errors, setErrors] = useState<Partial<TransferData>>({});
+  const [errors, setErrors] = useState<Partial<TransferData & { general: string }>>({});
 
   // Modal state
   const [isConfirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false); // State for SuccessModal
+  const [successMessage, setSuccessMessage] = useState<string>(''); // Success message
 
   // Track if animations have run
   const hasAnimated = useRef(false);
@@ -119,6 +123,7 @@ const TransferScreen: React.FC = () => {
   // Handle QR code scan result
   const handleBarCodeScanned = (data: string) => {
     handleInputChange('receiverAddress', data);
+    setScanning(false); // Close scanner after scanning
   };
 
   // Handle opening the QR code scanner
@@ -137,6 +142,10 @@ const TransferScreen: React.FC = () => {
             senderAddress: formData.senderAddress,
             receiverAddress: '',
           });
+          // Show success modal
+          setSuccessMessage(`Transfer of ${formData.amount} ${selectedCoin} completed successfully! 😎`);
+          setIsSuccessModalVisible(true);
+          updateWalletData()
         }
       },
       onError: (err: any) => {
@@ -148,7 +157,7 @@ const TransferScreen: React.FC = () => {
 
   // Called when user clicks "Transfer"
   const handleTransfer = async () => {
-    const { errors, success } = await validateForm(formData, transcationSchema);
+    const { errors, success } = await validateForm(formData, transferSchema);
 
     if (!success) {
       setErrors(errors);
@@ -344,7 +353,7 @@ const TransferScreen: React.FC = () => {
                 </Animated.View>
                 {errors.amount && (
                   <Animated.View
-                    entering={hasAnimated.current ? undefined : FadeIn.duration(600).delay(700)}
+                   
                   >
                     <Text className="text-red-500 text-xs mb-4">{errors.amount}</Text>
                   </Animated.View>
@@ -399,24 +408,16 @@ const TransferScreen: React.FC = () => {
                     </Text>
                   </Animated.View>
                 )}
-                {errors.amount && (
+                {errors.general && (
                   <Animated.View
                     entering={hasAnimated.current ? undefined : FadeIn.duration(600).delay(1100)}
                   >
                     <Text className="text-red-500 text-xs mb-4 text-center">
-                      {errors.amount}
+                      {errors.general}
                     </Text>
                   </Animated.View>
                 )}
-                {transferError && (
-                  <Animated.View
-                    entering={hasAnimated.current ? undefined : FadeIn.duration(600).delay(1100)}
-                  >
-                    <Text className="text-red-500 text-xs mb-4 text-center">
-                      {transferError.message}
-                    </Text>
-                  </Animated.View>
-                )}
+
 
                 {/* Transfer button */}
                 <Animated.View
@@ -444,6 +445,18 @@ const TransferScreen: React.FC = () => {
         onCancel={() => setConfirmModalVisible(false)}
         isPending={transferPending}
         isLandscape={isLandscape}
+      />
+
+      {/* Success Modal */}
+      <SuccessModal
+        isVisible={isSuccessModalVisible}
+        title="Success!"
+        message={successMessage}
+        onClose={() => {
+          setIsSuccessModalVisible(false);
+          setSuccessMessage('');
+        }}
+        duration={2000}
       />
 
       <StatusBar style="dark" translucent={false} backgroundColor="white" />

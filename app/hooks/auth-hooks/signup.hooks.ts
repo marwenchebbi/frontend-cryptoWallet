@@ -7,10 +7,10 @@ import { ErrorResponse } from '@/app/models/error';
 import axiosInstance from '@/app/interceptors/axiosInstance';
 
 const signupUser = async (data: SignupData): Promise<boolean> => {
-  const url = `/auth/signup`;
+  const url = `http://${IP_ADDRESS}:3000/auth/signup`;
 
   try {
-    const response = await axiosInstance.post(url, data, {
+    const response = await axios.post(url, data, {
       headers: {
         'Content-Type': 'application/json',
       },

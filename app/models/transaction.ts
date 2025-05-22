@@ -2,6 +2,7 @@
 export enum TransactionType {
     TRANSFER = 'transfer',
     TRADING = 'trading',
+    PAYMENT = 'payment'
   }
   
   export interface TransferData {

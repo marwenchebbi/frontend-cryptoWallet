@@ -15,11 +15,7 @@ const changePassword = async (data: ChangePasswordData): Promise<ChangePasswordR
     throw new Error(JSON.stringify(errors));
   }
 
-  // Récupération du token d'accès
-  const token = await SecureStore.getItemAsync('accessToken');
-  if (!token) {
-    throw new Error('No access token found');
-  }
+
 
   try {
     const response = await axiosInstance.post<ChangePasswordResponse>(
@@ -28,7 +24,6 @@ const changePassword = async (data: ChangePasswordData): Promise<ChangePasswordR
       {
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
       }
     );
