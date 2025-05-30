@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TransactionType } from '../models/transaction';
+import { useRouter } from 'expo-router';
+
 
 interface TransactionItemProps {
   transaction: any;
@@ -10,8 +12,26 @@ interface TransactionItemProps {
 }
 
 const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, userId , transactionType }) => {
+  const router = useRouter();
   // Determine if the user is the sender
   const isSender = transaction.sender_id && transaction.sender_id.toString() === userId;
+
+  const handleItemToNavigate = ()=>{
+
+    if (transactionType === TransactionType.TRADING) {
+              router.push({
+      pathname: '/screens/history.screen',
+      params: { transactionType: TransactionType.TRADING },
+    });
+      
+    } else {
+                    router.push({
+      pathname: '/screens/history.screen',
+      params: { transactionType: TransactionType.TRANSFER },
+      
+    })
+
+  }}
 
   // Determine operation for trading transactions
   const operation = transaction.operation || 'sell';
@@ -55,6 +75,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, userId ,
   };
 
   return (
+    <TouchableOpacity onPress={handleItemToNavigate}>
     <LinearGradient
       colors={['#A855F7', '#F472B6']}
       start={{ x: 0, y: 0 }}
@@ -89,6 +110,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, userId ,
         </Text>
       </View>
     </LinearGradient>
+    </TouchableOpacity>
   );
 };
 

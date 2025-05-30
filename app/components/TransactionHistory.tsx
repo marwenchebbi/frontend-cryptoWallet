@@ -54,9 +54,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({  onLoadMore }) 
           userId={userId}
         />
       ))}
-      <TouchableOpacity onPress={onLoadMore}>
-        <Text className="text-purple-500 text-center mt-2">Load more</Text>
-      </TouchableOpacity>
+
     </View>
   );
 };

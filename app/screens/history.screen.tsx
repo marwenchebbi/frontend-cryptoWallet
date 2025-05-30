@@ -9,7 +9,7 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
@@ -261,6 +261,7 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ transactionType: propTran
                   : 'text-blue-500';
 
               return (
+                
                 <View
                   key={transaction.id || index} // Use transaction.id if available
                  
@@ -302,6 +303,7 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ transactionType: propTran
                     </View>
                   </LinearGradient>
                 </View>
+              
               );
             })}
         </Animated.View>

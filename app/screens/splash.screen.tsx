@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, SafeAreaView, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import LottieView from 'lottie-react-native';
@@ -15,6 +15,9 @@ const CryptoWalletScreen = () => {
   const isLandscape = useOrientation();
 
   const [auth, setAuth] = useState<boolean | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showUserAgreement, setShowUserAgreement] = useState(false);
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -31,6 +34,326 @@ const CryptoWalletScreen = () => {
     return <Redirect href="/(tabs)/Home" />;
   }
 
+  const UserAgreementModal = () => (
+    <Modal
+      visible={showUserAgreement}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
+        <View style={{ 
+          flexDirection: 'row', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          padding: 16,
+          borderBottomWidth: 1,
+          borderBottomColor: '#E5E7EB'
+        }}>
+          <Text style={{ 
+            fontSize: RFValue(18), 
+            fontWeight: 'bold',
+            fontFamily: 'Inter-Bold'
+          }}>
+            User Agreement
+          </Text>
+          <TouchableOpacity onPress={() => setShowUserAgreement(false)}>
+            <Ionicons name="close" size={24} color="black" />
+          </TouchableOpacity>
+        </View>
+        
+        <ScrollView style={{ flex: 1, padding: 16 }}>
+          <Text style={{ 
+            fontSize: RFValue(16), 
+            lineHeight: 24, 
+            marginBottom: 16,
+            fontFamily: 'Inter-Regular'
+          }}>
+            <Text style={{ fontWeight: 'bold' }}>Effective Date:</Text> {new Date().toLocaleDateString()}
+          </Text>
+          
+          <Text style={{ 
+            fontSize: RFValue(14), 
+            lineHeight: 22, 
+            marginBottom: 16,
+            fontFamily: 'Inter-Regular'
+          }}>
+            Welcome to CustWallet. By using our application, you agree to the following terms and conditions:
+          </Text>
+
+          <Text style={{ 
+            fontSize: RFValue(16), 
+            fontWeight: 'bold', 
+            marginBottom: 8,
+            fontFamily: 'Inter-Bold'
+          }}>
+            1. Acceptance of Terms
+          </Text>
+          <Text style={{ 
+            fontSize: RFValue(14), 
+            lineHeight: 22, 
+            marginBottom: 16,
+            fontFamily: 'Inter-Regular'
+          }}>
+            By accessing and using this application, you accept and agree to be bound by the terms and provision of this agreement.
+          </Text>
+
+          <Text style={{ 
+            fontSize: RFValue(16), 
+            fontWeight: 'bold', 
+            marginBottom: 8,
+            fontFamily: 'Inter-Bold'
+          }}>
+            2. Use of Service
+          </Text>
+          <Text style={{ 
+            fontSize: RFValue(14), 
+            lineHeight: 22, 
+            marginBottom: 16,
+            fontFamily: 'Inter-Regular'
+          }}>
+            You may use our service for lawful purposes only. You agree not to use the service for any fraudulent or unauthorized purpose.
+          </Text>
+
+          <Text style={{ 
+            fontSize: RFValue(16), 
+            fontWeight: 'bold', 
+            marginBottom: 8,
+            fontFamily: 'Inter-Bold'
+          }}>
+            3. Security
+          </Text>
+          <Text style={{ 
+            fontSize: RFValue(14), 
+            lineHeight: 22, 
+            marginBottom: 16,
+            fontFamily: 'Inter-Regular'
+          }}>
+            You are responsible for maintaining the confidentiality of your account and password. You agree to accept responsibility for all activities that occur under your account.
+          </Text>
+
+          <Text style={{ 
+            fontSize: RFValue(16), 
+            fontWeight: 'bold', 
+            marginBottom: 8,
+            fontFamily: 'Inter-Bold'
+          }}>
+            4. Cryptocurrency Risks
+          </Text>
+          <Text style={{ 
+            fontSize: RFValue(14), 
+            lineHeight: 22, 
+            marginBottom: 16,
+            fontFamily: 'Inter-Regular'
+          }}>
+            Cryptocurrency investments carry significant risk. The value of digital assets can be volatile and may result in partial or total loss of your investment.
+          </Text>
+
+          <Text style={{ 
+            fontSize: RFValue(16), 
+            fontWeight: 'bold', 
+            marginBottom: 8,
+            fontFamily: 'Inter-Bold'
+          }}>
+            5. Limitation of Liability
+          </Text>
+          <Text style={{ 
+            fontSize: RFValue(14), 
+            lineHeight: 22, 
+            marginBottom: 16,
+            fontFamily: 'Inter-Regular'
+          }}>
+            We shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of the service.
+          </Text>
+
+          <Text style={{ 
+            fontSize: RFValue(16), 
+            fontWeight: 'bold', 
+            marginBottom: 8,
+            fontFamily: 'Inter-Bold'
+          }}>
+            6. Changes to Terms
+          </Text>
+          <Text style={{ 
+            fontSize: RFValue(14), 
+            lineHeight: 22, 
+            marginBottom: 32,
+            fontFamily: 'Inter-Regular'
+          }}>
+            We reserve the right to modify these terms at any time. Changes will be effective immediately upon posting.
+          </Text>
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+
+  const PrivacyPolicyModal = () => (
+    <Modal
+      visible={showPrivacyPolicy}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
+        <View style={{ 
+          flexDirection: 'row', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          padding: 16,
+          borderBottomWidth: 1,
+          borderBottomColor: '#E5E7EB'
+        }}>
+          <Text style={{ 
+            fontSize: RFValue(18), 
+            fontWeight: 'bold',
+            fontFamily: 'Inter-Bold'
+          }}>
+            Privacy Policy
+          </Text>
+          <TouchableOpacity onPress={() => setShowPrivacyPolicy(false)}>
+            <Ionicons name="close" size={24} color="black" />
+          </TouchableOpacity>
+        </View>
+        
+        <ScrollView style={{ flex: 1, padding: 16 }}>
+          <Text style={{ 
+            fontSize: RFValue(16), 
+            lineHeight: 24, 
+            marginBottom: 16,
+            fontFamily: 'Inter-Regular'
+          }}>
+            <Text style={{ fontWeight: 'bold' }}>Effective Date:</Text> {new Date().toLocaleDateString()}
+          </Text>
+          
+          <Text style={{ 
+            fontSize: RFValue(14), 
+            lineHeight: 22, 
+            marginBottom: 16,
+            fontFamily: 'Inter-Regular'
+          }}>
+            This Privacy Policy describes how CustWallet collects, uses, and protects your information when you use our service.
+          </Text>
+
+          <Text style={{ 
+            fontSize: RFValue(16), 
+            fontWeight: 'bold', 
+            marginBottom: 8,
+            fontFamily: 'Inter-Bold'
+          }}>
+            1. Information We Collect
+          </Text>
+          <Text style={{ 
+            fontSize: RFValue(14), 
+            lineHeight: 22, 
+            marginBottom: 16,
+            fontFamily: 'Inter-Regular'
+          }}>
+            We collect information you provide directly to us, such as when you create an account, make transactions, or contact us for support.
+          </Text>
+
+          <Text style={{ 
+            fontSize: RFValue(16), 
+            fontWeight: 'bold', 
+            marginBottom: 8,
+            fontFamily: 'Inter-Bold'
+          }}>
+            2. How We Use Your Information
+          </Text>
+          <Text style={{ 
+            fontSize: RFValue(14), 
+            lineHeight: 22, 
+            marginBottom: 16,
+            fontFamily: 'Inter-Regular'
+          }}>
+            We use the information we collect to provide, maintain, and improve our services, process transactions, and communicate with you.
+          </Text>
+
+          <Text style={{ 
+            fontSize: RFValue(16), 
+            fontWeight: 'bold', 
+            marginBottom: 8,
+            fontFamily: 'Inter-Bold'
+          }}>
+            3. Information Sharing
+          </Text>
+          <Text style={{ 
+            fontSize: RFValue(14), 
+            lineHeight: 22, 
+            marginBottom: 16,
+            fontFamily: 'Inter-Regular'
+          }}>
+            We do not sell, trade, or otherwise transfer your personal information to third parties without your consent, except as described in this policy.
+          </Text>
+
+          <Text style={{ 
+            fontSize: RFValue(16), 
+            fontWeight: 'bold', 
+            marginBottom: 8,
+            fontFamily: 'Inter-Bold'
+          }}>
+            4. Data Security
+          </Text>
+          <Text style={{ 
+            fontSize: RFValue(14), 
+            lineHeight: 22, 
+            marginBottom: 16,
+            fontFamily: 'Inter-Regular'
+          }}>
+            We implement appropriate security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.
+          </Text>
+
+          <Text style={{ 
+            fontSize: RFValue(16), 
+            fontWeight: 'bold', 
+            marginBottom: 8,
+            fontFamily: 'Inter-Bold'
+          }}>
+            5. Cookies and Tracking
+          </Text>
+          <Text style={{ 
+            fontSize: RFValue(14), 
+            lineHeight: 22, 
+            marginBottom: 16,
+            fontFamily: 'Inter-Regular'
+          }}>
+            We may use cookies and similar tracking technologies to enhance your experience and gather information about visitors and visits to our application.
+          </Text>
+
+          <Text style={{ 
+            fontSize: RFValue(16), 
+            fontWeight: 'bold', 
+            marginBottom: 8,
+            fontFamily: 'Inter-Bold'
+          }}>
+            6. Your Rights
+          </Text>
+          <Text style={{ 
+            fontSize: RFValue(14), 
+            lineHeight: 22, 
+            marginBottom: 16,
+            fontFamily: 'Inter-Regular'
+          }}>
+            You have the right to access, update, or delete your personal information. You may also opt out of certain communications from us.
+          </Text>
+
+          <Text style={{ 
+            fontSize: RFValue(16), 
+            fontWeight: 'bold', 
+            marginBottom: 8,
+            fontFamily: 'Inter-Bold'
+          }}>
+            7. Contact Us
+          </Text>
+          <Text style={{ 
+            fontSize: RFValue(14), 
+            lineHeight: 22, 
+            marginBottom: 32,
+            fontFamily: 'Inter-Regular'
+          }}>
+            If you have any questions about this Privacy Policy, please contact us at privacy@cryptowallet.com
+          </Text>
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
 
   return (
     <LinearGradient
@@ -58,21 +381,19 @@ const CryptoWalletScreen = () => {
               fontFamily: 'Inter-Black',
             }}
           >
-            Crypto Wallet
+            CustWallet
           </Text>
         </Animated.View>
 
         {/* Lottie Animation */}
-        <Animated.View  className='opacity-50'
+        <Animated.View className='opacity-50'
           entering={FadeIn.duration(600)}
           style={{
             width: '100%',
-            height: isLandscape ? 200 : 250, // Adjust height as needed
+            height: isLandscape ? 200 : 250,
             justifyContent: 'center',
             alignItems: 'center',
             marginVertical: isLandscape ? 8 : 16,
-            
-            
           }}
         >
           <LottieView
@@ -89,7 +410,7 @@ const CryptoWalletScreen = () => {
           style={{
             flex: 1,
             justifyContent: 'center',
-            alignItems: 'center', // Center the text
+            alignItems: 'center',
             paddingHorizontal: isLandscape ? 24 : 16,
           }}
         >
@@ -102,7 +423,7 @@ const CryptoWalletScreen = () => {
               fontFamily: 'Inter-Regular',
             }}
           >
-Manage your custom asset effortlessly and stay ahead in the digital economy.
+            Manage your custom asset effortlessly and stay ahead in the digital economy.
           </Text>
         </Animated.View>
 
@@ -115,32 +436,56 @@ Manage your custom asset effortlessly and stay ahead in the digital economy.
             paddingBottom: isLandscape ? 16 : 32,
           }}
         >
-          <View className='mx-5'
+          {/* Terms and Conditions */}
+          <TouchableOpacity
+            onPress={() => setTermsAccepted(!termsAccepted)}
             style={{
               flexDirection: 'row',
               justifyContent: 'center',
               alignItems: 'center',
               marginBottom: isLandscape ? 8 : 16,
+              paddingHorizontal: 20,
             }}
           >
+            <Ionicons 
+              name={termsAccepted ? "checkbox" : "square-outline"} 
+              size={RFValue(20)} 
+              color={termsAccepted ? "#6B5B95" : "#D1D5DB"} 
+              style={{ marginRight: 8 }}
+            />
             <Text
               style={{
-                color: '#D1D5DB',
-                marginRight: 4,
+                color: '#6B7280',
                 fontSize: RFValue(isLandscape ? 10 : 12),
+                textAlign: 'center',
+                flex: 1,
+                fontFamily: 'Inter-Regular',
               }}
             >
-              By continuing you agree to our{' '}
-              <Text style={{ textDecorationLine: 'underline', color: '#A78BFA' }}>
+              I agree to the{' '}
+              <Text 
+                style={{ 
+                  textDecorationLine: 'underline', 
+                  color: '#A78BFA',
+                  fontWeight: '500'
+                }}
+                onPress={() => setShowUserAgreement(true)}
+              >
                 User Agreement
               </Text>{' '}
               and{' '}
-              <Text style={{ textDecorationLine: 'underline', color: '#A78BFA' }}>
+              <Text 
+                style={{ 
+                  textDecorationLine: 'underline', 
+                  color: '#A78BFA',
+                  fontWeight: '500'
+                }}
+                onPress={() => setShowPrivacyPolicy(true)}
+              >
                 Privacy Policy
-              </Text>.
+              </Text>
             </Text>
-            <Ionicons name="checkbox" size={RFValue(16)} color="#6B5B95" />
-          </View>
+          </TouchableOpacity>
 
           <View
             style={{
@@ -157,7 +502,7 @@ Manage your custom asset effortlessly and stay ahead in the digital economy.
                 paddingHorizontal: isLandscape ? 16 : 24,
                 marginRight: 16,
               }}
-              onPress={() => router.replace('/screens/payment.screen')}
+              onPress={() => router.push('/screens/email-verification.screen')}
             >
               <Text
                 style={{
@@ -176,13 +521,18 @@ Manage your custom asset effortlessly and stay ahead in the digital economy.
                   borderRadius: 999,
                   paddingVertical: isLandscape ? 8 : 12,
                   paddingHorizontal: isLandscape ? 16 : 24,
-                  backgroundColor: 'black',
+                  backgroundColor: termsAccepted ? 'black' : '#D1D5DB',
                 }}
-                onPress={() => router.replace(auth ? '/(tabs)/Home' : '/screens/login.screen')}
+                disabled={!termsAccepted}
+                onPress={() => {
+                  if (termsAccepted) {
+                    router.replace(auth ? '/(tabs)/Home' : '/screens/login.screen');
+                  }
+                }}
               >
                 <Text
                   style={{
-                    color: 'white',
+                    color: termsAccepted ? 'white' : '#9CA3AF',
                     fontWeight: '500',
                     fontSize: RFValue(isLandscape ? 14 : 16),
                   }}
@@ -194,7 +544,11 @@ Manage your custom asset effortlessly and stay ahead in the digital economy.
           </View>
         </Animated.View>
 
-        <StatusBar style="dark" translucent={false}  />
+        <StatusBar style="dark" translucent={false} />
+
+        {/* Modals */}
+        <UserAgreementModal />
+        <PrivacyPolicyModal />
       </SafeAreaView>
     </LinearGradient>
   );

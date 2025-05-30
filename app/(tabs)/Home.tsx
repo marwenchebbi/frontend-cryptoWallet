@@ -14,7 +14,7 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useOrientation } from '../hooks/shared/useOrientation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
-import { Ionicons } from '@expo/vector-icons';
+import { FontAwesome6, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 
@@ -32,9 +32,9 @@ const Home: React.FC = () => {
   const insets = useSafeAreaInsets();
   const isLandscape = useOrientation();
   const router = useRouter();
-    const { refetch  } = usePriceHistory();
-    const {refetch : historyRef} = useTransactionHistory( 1, 3, '-createdAt');
-  
+  const { refetch } = usePriceHistory();
+  const { refetch: historyRef } = useTransactionHistory(1, 3, '-createdAt');
+
 
   // State for user ID and wallet address
   const [userId, setUserId] = useState<string | null>(null);
@@ -63,7 +63,7 @@ const Home: React.FC = () => {
     error: walletError,
     refetch: walletRefetch,
   } = useGetWalletInfo(senderAddress || '');
-  
+
   const {
     data: priceInfo,
     isLoading: isPriceLoading,
@@ -82,17 +82,10 @@ const Home: React.FC = () => {
   }, [walletRefetch, priceRefetch, historyRef]);
 
   // Navigation handlers for action buttons
-  const handleSend = () => router.push('/(tabs)/Transfer');
-  const handleSell = () => router.push('/(tabs)/Exchange');
-  const handleBuy = () => router.push('/(tabs)/Exchange');
-  const handleLoadMore = () => {
-    /*router.push({
-      pathname: '/screens/history.screen',
-      params: { transactionType: TransactionType.TRADING },
-    });*/
+  const handleTransfer = () => router.push('/(tabs)/Transfer');
+  const handleExchange = () => router.push('/(tabs)/Exchange');
+  const handlePayment = () =>     router.push('/screens/payment.screen')
 
-    router.push('/screens/trade-token.screen')
-  };
 
   // Loading state
   if (!userId || !senderAddress || isWalletLoading) {
@@ -126,7 +119,7 @@ const Home: React.FC = () => {
       >
         <Header
           title="Home"
-          onHistoryPress={handleLoadMore}
+
           isLandscape={isLandscape}
           backEnabled={false}
           historyEnabled={false}
@@ -173,24 +166,25 @@ const Home: React.FC = () => {
           entering={FadeInDown.duration(600).delay(400)}
           className="flex-row justify-around mt-6 mx-12"
         >
-          <TouchableOpacity onPress={handleSend} className="items-center">
+          <TouchableOpacity onPress={handleTransfer} className="items-center">
             <View className="bg-purple-100 p-4 rounded-full">
-              <FontAwesome name="send" size={24} color="#A855F7" />
+              <FontAwesome6 name="money-bill-transfer" size={24} color="#A855F7" />
             </View>
-            <Text className="text-black mt-2">Send</Text>
+            <Text className="text-gray-500 text-sm mt-2">Transfer</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleSell} className="items-center">
+          <TouchableOpacity onPress={handleExchange} className="items-center">
             <View className="bg-purple-100 p-4 rounded-full">
-              <FontAwesome5 name="donate" size={24} color="#A855F7" />
+              <MaterialIcons name="currency-exchange" size={24} color="#A855F7" />
             </View>
-            <Text className="text-black mt-2">Sell</Text>
+            <Text className="text-gray-500 text-sm mt-2">Exchange</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleBuy} className="items-center">
+          <TouchableOpacity onPress={handlePayment} className="items-center">
             <View className="bg-purple-100 p-4 rounded-full">
-              <Ionicons name="cash" size={24} color="#A855F7" />
+              <FontAwesome6 name="circle-dollar-to-slot" size={24} color="#A855F7" />
             </View>
-            <Text className="text-black mt-2">Buy</Text>
+            <Text className="text-gray-500 text-sm mt-2">Suppply</Text>
           </TouchableOpacity>
+
         </Animated.View>
 
         {/* Transaction History Section */}
@@ -198,7 +192,7 @@ const Home: React.FC = () => {
           entering={FadeInDown.duration(600).delay(500)}
           className="px-4 mt-6"
         >
-          <TransactionHistory onLoadMore={handleLoadMore} />
+          <TransactionHistory onLoadMore={()=>{ console.log()}} />
         </Animated.View>
 
         {/* Price Chart Section */}

@@ -294,27 +294,11 @@ const SignupScreen: React.FC = () => {
             {/* Divider */}
             <Animated.View entering={FadeIn.duration(600).delay(900)} style={{ width: '75%', height: 1, backgroundColor: '#D1D5DB', marginBottom: isLandscape ? 16 : 24 }} />
 
-            {/* Social Login */}
-            <Animated.View entering={FadeInDown.duration(600).delay(1000)}>
-              <Text className={`text-gray-600 ${isLandscape ? 'text-xs mb-2' : 'text-sm mb-4'}`}>
-                Sign up with
-              </Text>
-              <View className={`flex-row justify-center ${isLandscape ? 'mb-4' : 'mb-6'}`}>
-                <TouchableOpacity className="mx-2">
-                  <FontAwesome name="google" size={RFValue(30)} color="#000" />
-                </TouchableOpacity>
-                <TouchableOpacity className="mx-2">
-                  <FontAwesome name="facebook" size={RFValue(30)} color="#000" />
-                </TouchableOpacity>
-                <TouchableOpacity className="mx-2">
-                  <MaterialCommunityIcons name="apple" size={RFValue(30)} color="#000" />
-                </TouchableOpacity>
-              </View>
-            </Animated.View>
+
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-      <StatusBar style="light" translucent={false} />
+      <StatusBar style="dark" translucent={false} />
     </SafeAreaView>
   );
 };

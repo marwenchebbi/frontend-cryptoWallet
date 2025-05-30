@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useStripe } from '@stripe/stripe-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as SecureStore from 'expo-secure-store';
 
 // Custom hooks
 import { useOrientation } from '../hooks/shared/useOrientation';
@@ -33,49 +34,71 @@ import BalanceDetails from '../components/BalancesDetails';
 import axiosInstance from '../interceptors/axiosInstance';
 import { useGetWalletInfo } from '../hooks/wallet-info-hooks/balances.hooks';
 import { useGetPrice } from '../hooks/transactions-hooks/price.hooks';
+import { TransactionType } from '../models/transaction';
 
-interface PaymentIntentResponse {
+interface IntentResponse {
   clientSecret: string;
 }
 
-const BuyTokensScreen: React.FC = () => {
+type TradeMode = 'buy' | 'sell';
+
+const TradeTokensScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const isLandscape = useOrientation();
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const { isBiometricSupported, authenticate, error: biometricError } = useBiometricAuth();
-  
+
   // State for tracking animation
   const hasAnimated = useRef(false);
 
-  // Wallet details - in a real app, get from context or secure storage
-  const walletAddress = '0x28C0b92A44f84cadfbbaefD8b989e368722155A0';
-  
+  // Wallet details
+  useEffect(() => {
+    const fetchUserWalletAddress = async () => {
+      const address = await SecureStore.getItemAsync('walletAddress');
+      if(!address){
+        throw new Error;
+      }
+      setWalletAddress(address);
+    };
+    fetchUserWalletAddress();
+  }, []);
+
   // Form state
+  const [walletAddress, setWalletAddress] = useState<string>('');
+  const [tradeMode, setTradeMode] = useState<TradeMode>('buy');
   const [prxAmount, setPrxAmount] = useState<string>('');
-  const [errors, setErrors] = useState<{amount?: string; general?: string}>({});
-  
-  // State for toggling balance/coin display
+  const [cardDetails, setCardDetails] = useState({
+    name: '',
+    email: '',
+    cardNumber: '',
+    expDate: '',
+    cvc: '',
+  });
+  const [errors, setErrors] = useState<{
+    amount?: string;
+    name?: string;
+    email?: string;
+    cardNumber?: string;
+    expDate?: string;
+    cvc?: string;
+    general?: string;
+  }>({});
   const [selectedBalance, setSelectedBalance] = useState<'Proxym' | 'USDT'>('Proxym');
   const [selectedCoin, setSelectedCoin] = useState<'PRX' | 'USDT'>('PRX');
-  
-  // Success modal state
   const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
-  
-  // Get wallet info
-  const {
-    data: walletInfo,
-    isLoading: isWalletLoading,
-    refetch: walletRefetch,
-  } = useGetWalletInfo(walletAddress);
 
-  // Get price info
-  const {
-    data: priceInfo,
-    isLoading: isPriceLoading,
-    refetch: priceRefetch,
-  } = useGetPrice();
+  // Get wallet and price info
+  const { data: walletInfo, isLoading: isWalletLoading, refetch: walletRefetch } =
+    useGetWalletInfo(walletAddress);
+  const { data: priceInfo, isLoading: isPriceLoading, refetch: priceRefetch } = useGetPrice();
+
+  // Refs for input focus management
+  const emailInputRef = useRef(null);
+  const cardNumberInputRef = useRef(null);
+  const expDateInputRef = useRef(null);
+  const cvcInputRef = useRef(null);
 
   // Update wallet data
   const updateWalletData = () => {
@@ -83,92 +106,163 @@ const BuyTokensScreen: React.FC = () => {
     walletRefetch();
   };
 
-  const handleBuyTokens = async () => {
-    // Form validation
-    if (!prxAmount || parseFloat(prxAmount) <= 0) {
-      setErrors({ amount: 'Please enter a valid amount' });
-      return;
+  // Format card number with spaces
+  const formatCardNumber = (text: string) => {
+    const cleaned = text.replace(/\s+/g, '');
+    const groups = [];
+    
+    for (let i = 0; i < cleaned.length; i += 4) {
+      groups.push(cleaned.substr(i, 4));
     }
     
+    return groups.join(' ');
+  };
+
+  // Format expiration date
+  const formatExpDate = (text: string) => {
+    const cleaned = text.replace(/\D/g, '');
+    
+    if (cleaned.length <= 2) {
+      return cleaned;
+    }
+    
+    return `${cleaned.substring(0, 2)}/${cleaned.substring(2, 4)}`;
+  };
+
+  const validateForm = () => {
+    const newErrors: any = {};
+    let isValid = true;
+
+    // Amount validation
+    if (!prxAmount || parseFloat(prxAmount) <= 0) {
+      newErrors.amount = 'Please enter a valid amount';
+      isValid = false;
+    }
+
+    // Card details validation for sell mode
+    if (tradeMode === 'sell') {
+      if (!cardDetails.name.trim()) {
+        newErrors.name = 'Please enter your name';
+        isValid = false;
+      }
+      
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!cardDetails.email.trim() || !emailRegex.test(cardDetails.email)) {
+        newErrors.email = 'Please enter a valid email address';
+        isValid = false;
+      }
+      
+      if (cardDetails.cardNumber.replace(/\s/g, '').length !== 16) {
+        newErrors.cardNumber = 'Please enter a valid 16-digit card number';
+        isValid = false;
+      }
+      
+      if (!cardDetails.expDate || cardDetails.expDate.length !== 5) {
+        newErrors.expDate = 'Enter a valid expiry date (MM/YY)';
+        isValid = false;
+      }
+      
+      if (!cardDetails.cvc || cardDetails.cvc.length < 3) {
+        newErrors.cvc = 'Enter a valid CVC (3-4 digits)';
+        isValid = false; 
+      }
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
+  const handleTradeTokens = async () => {
     // Clear previous errors
     setErrors({});
-    
+
+    // Form validation
+    if (!validateForm()) return;
+
     // Biometric authentication if available
     if (isBiometricSupported) {
       const isAuthenticated = await authenticate();
       if (!isAuthenticated) {
-        setErrors({ amount: biometricError || 'Biometric verification failed' });
+        setErrors({ general: biometricError || 'Biometric verification failed' });
         return;
       }
     }
-    
+
     try {
-      // Step 1: Create payment intent
-      const response = await axiosInstance.post<PaymentIntentResponse>('/payment/create-payment-intent', {
-        amount: parseFloat(prxAmount),
-        senderAddress: walletAddress,
-        currency: selectedCoin
-      });
-      
-      const { clientSecret } = response.data;
-      console.log(clientSecret)
-      
-      if (!clientSecret) {
-        throw new Error('Missing client secret from backend');
-      }
-      
-      // Step 2: Initialize payment sheet
-      const { error: initError } = await initPaymentSheet({
-        paymentIntentClientSecret: clientSecret,
-        merchantDisplayName: 'Proxym App',
-        allowsDelayedPaymentMethods: true,
-        defaultBillingDetails: {
-          name: 'Marwen',
-          email :'Marwen@gmail.com'
-        }
-      });
-      
-      if (initError) {
-        setErrors({ general: `Payment initialization failed: ${initError.message}` });
-        return;
-      }
-      
-      // Step 3: Present payment sheet
-      const { error: presentError } = await presentPaymentSheet();
-           console.log(clientSecret.split('_secret_')[0]) 
-      if (presentError) {
-        if (presentError.code === 'Canceled') {
-          // User canceled the payment - no need for error message
+      if (tradeMode === 'buy') {
+        // Buy tokens
+        const response = await axiosInstance.post<IntentResponse>('/payment/create-payment-intent', {
+          amount: parseFloat(prxAmount),
+          senderAddress: walletAddress,
+          currency: selectedCoin,
+        });
+
+        const { clientSecret } = response.data;
+        if (!clientSecret) throw new Error('Missing client secret from backend');
+
+        const { error: initError } = await initPaymentSheet({
+          paymentIntentClientSecret: clientSecret,
+          merchantDisplayName: 'Proxym App',
+          allowsDelayedPaymentMethods: true,
+          defaultBillingDetails: { name: 'Marwen', email: 'Marwen@gmail.com' },
+        });
+
+        if (initError) {
+          setErrors({ general: `Payment initialization failed: ${initError.message}` });
           return;
         }
-        setErrors({ general: `Payment failed: ${presentError.message}` });
-        return;
-      }
-      console.log()
 
-      // Step 4: Confirm payment with backend
-      const  result  = await axiosInstance.post('/payment/confirm-payment', {
-        paymentIntentId: clientSecret.split('_secret_')[0],
-      });
-      console.log(result)
-      
-      // Success! Reset form and show success modal
+        const { error: presentError } = await presentPaymentSheet();
+        if (presentError) {
+          if (presentError.code !== 'Canceled') {
+            setErrors({ general: `Payment failed: ${presentError.message}` });
+          }
+          return;
+        }
+
+        await axiosInstance.post('/payment/confirm-payment', {
+          paymentIntentId: clientSecret.split('_secret_')[0],
+        });
+      } else {
+        // Sell tokens
+        const response = await axiosInstance.post<IntentResponse>('/payment/sell-crypto', {
+          amount: parseFloat(prxAmount),
+          userAddress: walletAddress,
+          currency: selectedCoin,
+          cardDetails: {
+            name: cardDetails.name,
+            email: cardDetails.email,
+            paymentMethodId: 'pm_card_visa',
+          },
+        });
+
+        const paymentId = response.data.clientSecret.split('_secret_')[0];
+        if (!paymentId) throw new Error('Missing payout intent ID from backend');
+
+        await axiosInstance.post('/payment/confirm-sell', {
+          payoutIntentId: paymentId,
+        });
+      }
+
+      // Success
       setPrxAmount('');
-      setSuccessMessage(`Successfully purchased ${prxAmount} ${selectedCoin}! 🚀`);
+      if (tradeMode === 'sell') {
+        setCardDetails({ name: '', email: '', cardNumber: '', expDate: '', cvc: '' });
+      }
+      setSuccessMessage(
+        `Successfully ${tradeMode === 'buy' ? 'purchased' : 'sold'} ${prxAmount} ${selectedCoin}! 🚀`,
+      );
       setIsSuccessModalVisible(true);
       updateWalletData();
-
-      
     } catch (error: any) {
-      setErrors({ general: `Failed to process payment: ${error.message || 'Unknown error'}` });
+      setErrors({ general: `Failed to process ${tradeMode}: ${error.message || 'Unknown error'}` });
     }
   };
 
   const handleHistoryIcon = () => {
-    // Navigate to history screen
     router.push({
-      pathname: '/screens/history.screen',
-      params: { transactionType: 'PAYMENT' },
+      pathname: '/screens/history-payment.screen',
+      
     });
   };
 
@@ -178,14 +272,14 @@ const BuyTokensScreen: React.FC = () => {
       <Animated.View
         entering={hasAnimated.current ? undefined : FadeIn.duration(600)}
         className="absolute top-0 left-0 right-0 z-40 bg-white"
-        style={{ paddingTop: insets.top }}
+        style={{ paddingTop: insets.top  }}
       >
         <Header
-          title="Buy Tokens"
+          title={`${tradeMode === 'buy' ? 'Buy' : 'Sell'} Tokens`}
           onHistoryPress={handleHistoryIcon}
           isLandscape={isLandscape}
           backEnabled={true}
-          onBackPress={()=>router.back()}
+          onBackPress={() => router.back()}
           historyEnabled={true}
         />
       </Animated.View>
@@ -200,16 +294,14 @@ const BuyTokensScreen: React.FC = () => {
             flexGrow: 1,
             justifyContent: 'center',
             paddingBottom: insets.bottom + 50,
+            paddingTop :insets.top + 50
           }}
           keyboardShouldPersistTaps="handled"
           refreshControl={
-            <RefreshControl
-              refreshing={isWalletLoading || isPriceLoading}
-              onRefresh={updateWalletData}
-            />
+            <RefreshControl refreshing={isWalletLoading || isPriceLoading} onRefresh={updateWalletData} />
           }
         >
-          {/* Current balance display section */}
+          {/* Current balance display 
           <Animated.View
             entering={hasAnimated.current ? undefined : FadeInDown.duration(600).delay(200)}
             className="items-center mt-20"
@@ -227,7 +319,7 @@ const BuyTokensScreen: React.FC = () => {
           </Animated.View>
 
           {/* Refresh tip */}
-          {!isWalletLoading && (
+           {/*{!isWalletLoading && (
             <Animated.View
               entering={hasAnimated.current ? undefined : FadeInDown.duration(600).delay(300)}
               className="mt-4 p-2 bg-white rounded"
@@ -238,7 +330,7 @@ const BuyTokensScreen: React.FC = () => {
             </Animated.View>
           )}
 
-          {/* Buy tokens form container */}
+          {/* Trade form container */}
           <View className="flex-1 items-center justify-center my-8">
             <LinearGradient
               colors={['#A855F7', '#F472B6']}
@@ -248,37 +340,61 @@ const BuyTokensScreen: React.FC = () => {
               style={styles.gradient}
             >
               <View className="bg-white rounded-3xl p-6" style={styles.formContainer}>
+                {/* Toggle Buy/Sell */}
                 <Animated.View
                   entering={hasAnimated.current ? undefined : FadeInDown.duration(600).delay(500)}
+                  className="flex-row justify-center mb-4"
                 >
-                  <Text
-                    className={`text-black text-center font-semibold ${
-                      isLandscape ? 'text-lg' : 'text-xl'
-                    } mb-5`}
+                  <TouchableOpacity
+                    onPress={() => {
+                      setTradeMode('buy');
+                      setErrors({});
+                    }}
+                    className={`px-4 py-2 rounded-l-full ${
+                      tradeMode === 'buy' ? 'bg-black' : 'bg-gray-200'
+                    }`}
                   >
-                    Buy Tokens
-                  </Text>
+                    <Text
+                      className={`text-base ${tradeMode === 'buy' ? 'text-white' : 'text-black'}`}
+                    >
+                      Buy
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setTradeMode('sell');
+                      setErrors({});
+                    }}
+                    className={`px-4 py-2 rounded-r-full ${
+                      tradeMode === 'sell' ? 'bg-black' : 'bg-gray-200'
+                    }`}
+                  >
+                    <Text
+                      className={`text-base ${tradeMode === 'sell' ? 'text-white' : 'text-black'}`}
+                    >
+                      Sell
+                    </Text>
+                  </TouchableOpacity>
                 </Animated.View>
 
-                {/* Toggle between PRX / USDT */}
+                {/* Coin and Amount */}
                 <Animated.View
                   entering={hasAnimated.current ? undefined : FadeInDown.duration(600).delay(600)}
-                  className="flex-row items-center mb-4"
+                  className="flex-row items-center mb-2"
                 >
                   <TouchableOpacity
                     onPress={() => setSelectedCoin(selectedCoin === 'PRX' ? 'USDT' : 'PRX')}
+                    className="mr-2"
                   >
                     <View className="bg-black rounded-full px-4 py-2">
                       <Text className="text-white text-base">{selectedCoin}</Text>
                     </View>
                   </TouchableOpacity>
-
-                  {/* Amount input */}
                   <LinearGradient
                     colors={['#A855F7', '#F472B6']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
-                    className="rounded-full p-[2px] flex-1 ml-2"
+                    className="rounded-full p-[2px] flex-1"
                     style={styles.gradient}
                   >
                     <TextInput
@@ -289,45 +405,211 @@ const BuyTokensScreen: React.FC = () => {
                       placeholder="Amount"
                       placeholderTextColor="#9CA3AF"
                       value={prxAmount}
-                      onChangeText={setPrxAmount}
+                      onChangeText={(text) => {
+                        setPrxAmount(text.replace(/[^0-9.]/g, ''));
+                        if (errors.amount) setErrors({ ...errors, amount: undefined });
+                      }}
                       keyboardType="numeric"
+                      returnKeyType="next"
+                      onSubmitEditing={() => {
+                        if (tradeMode === 'sell') {
+                          // @ts-ignore
+                          emailInputRef?.current?.focus();
+                        }
+                      }}
                     />
                   </LinearGradient>
                 </Animated.View>
 
-                {/* Error message for amount */}
+                {/* Amount error message */}
                 {errors.amount && (
+                  <Text className="text-red-500 text-xs mb-3 ml-2">{errors.amount}</Text>
+                )}
+
+                {/* Card details for Sell */}
+                {tradeMode === 'sell' && (
                   <Animated.View
-                    entering={hasAnimated.current ? undefined : FadeIn.duration(600).delay(700)}
+                    entering={hasAnimated.current ? undefined : FadeInDown.duration(600).delay(700)}
+                    className="mt-4"
                   >
-                    <Text className="text-red-500 text-xs mb-4">{errors.amount}</Text>
+                    <View className="mb-3">
+                      <View className="flex-row items-center mb-1">
+                        <MaterialCommunityIcons name="account" size={18} color="#e9d5ff" />
+                        <Text className="text-gray-700 text-sm ml-1 mb-1">Full Name</Text>
+                      </View>
+                      <TextInput
+                        className={`w-full bg-gray-50 text-black ${
+                          isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
+                        } rounded-lg`}
+                        placeholder="John Doe"
+                        placeholderTextColor="#9CA3AF"
+                        value={cardDetails.name}
+                        onChangeText={(text) => {
+                          setCardDetails({ ...cardDetails, name: text });
+                          if (errors.name) setErrors({ ...errors, name: undefined });
+                        }}
+                        returnKeyType="next"
+                        onSubmitEditing={() => {
+                          // @ts-ignore
+                          emailInputRef?.current?.focus();
+                        }}
+                      />
+                      {errors.name && <Text className="text-red-500 text-xs mt-1">{errors.name}</Text>}
+                    </View>
+
+                    <View className="mb-3">
+                      <View className="flex-row items-center mb-1">
+                        <MaterialCommunityIcons name="email" size={18} color="#e9d5ff" />
+                        <Text className="text-gray-700 text-sm ml-1 mb-1">Email</Text>
+                      </View>
+                      <TextInput
+                        ref={emailInputRef}
+                        className={`w-full bg-gray-50 text-black ${
+                          isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
+                        } rounded-lg`}
+                        placeholder="email@example.com"
+                        placeholderTextColor="#9CA3AF"
+                        value={cardDetails.email}
+                        onChangeText={(text) => {
+                          setCardDetails({ ...cardDetails, email: text });
+                          if (errors.email) setErrors({ ...errors, email: undefined });
+                        }}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        returnKeyType="next"
+                        onSubmitEditing={() => {
+                          // @ts-ignore
+                          cardNumberInputRef?.current?.focus();
+                        }}
+                      />
+                      {errors.email && <Text className="text-red-500 text-xs mt-1">{errors.email}</Text>}
+                    </View>
+
+                    <View className="mb-3">
+                      <View className="flex-row items-center mb-1">
+                        <MaterialCommunityIcons name="credit-card" size={18} color="#e9d5ff" />
+                        <Text className="text-gray-700 text-sm ml-1 mb-1">Card Number</Text>
+                      </View>
+                      <TextInput
+                        ref={cardNumberInputRef}
+                        className={`w-full bg-gray-50 text-black ${
+                          isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
+                        } rounded-lg`}
+                        placeholder="4242 4242 4242 4242"
+                        placeholderTextColor="#9CA3AF"
+                        value={cardDetails.cardNumber}
+                        onChangeText={(text) => {
+                          const formattedText = formatCardNumber(text);
+                          setCardDetails({ ...cardDetails, cardNumber: formattedText });
+                          if (errors.cardNumber) setErrors({ ...errors, cardNumber: undefined });
+                        }}
+                        keyboardType="numeric"
+                        maxLength={19} // 16 digits + 3 spaces
+                        returnKeyType="next"
+                        onSubmitEditing={() => {
+                          // @ts-ignore
+                          expDateInputRef?.current?.focus();
+                        }}
+                      />
+                      {errors.cardNumber && (
+                        <Text className="text-red-500 text-xs mt-1">{errors.cardNumber}</Text>
+                      )}
+                    </View>
+
+                    <View className="flex-row">
+                      <View className="w-1/2 mr-2">
+                        <View className="flex-row items-center mb-1">
+                          <MaterialCommunityIcons name="calendar" size={18} color="#e9d5ff" />
+                          <Text className="text-gray-700 text-sm ml-1 mb-1">Expiry Date</Text>
+                        </View>
+                        <TextInput
+                          ref={expDateInputRef}
+                          className={`w-full bg-gray-50 text-black ${
+                            isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
+                          } rounded-lg`}
+                          placeholder="MM/YY"
+                          placeholderTextColor="#9CA3AF"
+                          value={cardDetails.expDate}
+                          onChangeText={(text) => {
+                            const formattedText = formatExpDate(text);
+                            setCardDetails({ ...cardDetails, expDate: formattedText });
+                            if (errors.expDate) setErrors({ ...errors, expDate: undefined });
+                          }}
+                          keyboardType="numeric"
+                          maxLength={5} // MM/YY
+                          returnKeyType="next"
+                          onSubmitEditing={() => {
+                            // @ts-ignore
+                            cvcInputRef?.current?.focus();
+                          }}
+                        />
+                        {errors.expDate && (
+                          <Text className="text-red-500 text-xs mt-1">{errors.expDate}</Text>
+                        )}
+                      </View>
+                      
+                      <View className="w-1/2">
+                        <View className="flex-row items-center mb-1">
+                          <MaterialCommunityIcons name="lock" size={18} color="#e9d5ff" />
+                          <Text className="text-gray-700 text-sm ml-1 mb-1">CVC</Text>
+                        </View>
+                        <TextInput
+                          ref={cvcInputRef}
+                          className={`w-full bg-gray-50 text-black ${
+                            isLandscape ? 'py-2 px-3 text-sm' : 'py-3 px-4 text-base'
+                          } rounded-lg`}
+                          placeholder="123"
+                          placeholderTextColor="#9CA3AF"
+                          value={cardDetails.cvc}
+                          onChangeText={(text) => {
+                            setCardDetails({ ...cardDetails, cvc: text.replace(/\D/g, '') });
+                            if (errors.cvc) setErrors({ ...errors, cvc: undefined });
+                          }}
+                          keyboardType="numeric"
+                          maxLength={4}
+                          secureTextEntry={true}
+                        />
+                        {errors.cvc && <Text className="text-red-500 text-xs mt-1">{errors.cvc}</Text>}
+                      </View>
+                    </View>
                   </Animated.View>
                 )}
 
-                {/* Price estimate */}
+                {/* Price/Payout estimate */}
                 <Animated.View
-                  entering={hasAnimated.current ? undefined : FadeInDown.duration(600).delay(800)}
-                  className="mb-6 mt-2"
+                  entering={hasAnimated.current ? undefined : FadeInDown.duration(600).delay(1000)}
+                  className="mb-6 mt-4"
                 >
                   <Text className="text-gray-500 text-sm text-center">
                     {prxAmount && !isNaN(parseFloat(prxAmount)) && priceInfo
-                      ? `Estimated cost: $${(parseFloat(prxAmount) * ((selectedCoin=== 'PRX' ?priceInfo : 1 ) || 1)).toFixed(2)}`
-                      : 'Enter an amount to see the price estimate'}
+                      ? `Estimated ${tradeMode === 'buy' ? 'cost' : 'payout'}: $${(
+                          parseFloat(prxAmount) * (selectedCoin === 'PRX' ? priceInfo : 1)
+                        ).toFixed(2)}`
+                      : `Enter an amount to see the ${tradeMode === 'buy' ? 'cost' : 'payout'} estimate`}
                   </Text>
                 </Animated.View>
 
-                {/* Payment method info */}
+                {/* Payment/Payout method info */}
                 <Animated.View
-                  entering={hasAnimated.current ? undefined : FadeInDown.duration(600).delay(900)}
+                  entering={hasAnimated.current ? undefined : FadeInDown.duration(600).delay(1100)}
                   className="mb-6"
                 >
                   <View className="bg-gray-50 p-4 rounded-lg">
                     <View className="flex-row items-center mb-2">
-                      <MaterialCommunityIcons name="credit-card-outline" size={20} color="#6B7280" />
-                      <Text className="text-gray-600 text-sm ml-2 font-medium">Payment Method</Text>
+                      <MaterialCommunityIcons
+                        name={tradeMode === 'buy' ? 'credit-card-outline' : 'bank-outline'}
+                        size={20}
+                        color="#e9d5ff"
+                      />
+                      <Text className="text-gray-600 text-sm ml-2 font-medium">
+                        {tradeMode === 'buy' ? 'Payment' : 'Payout'} Method
+                      </Text>
                     </View>
                     <Text className="text-gray-500 text-xs">
-                      Secure payments processed via Stripe. Your card details are never stored on our servers.
+                      Secure {tradeMode === 'buy' ? 'payments' : 'payouts'} processed via Stripe.{' '}
+                      {tradeMode === 'buy'
+                        ? 'Your card details are never stored on our servers.'
+                        : 'Funds will be transferred to your provided card.'}
                     </Text>
                   </View>
                 </Animated.View>
@@ -335,21 +617,19 @@ const BuyTokensScreen: React.FC = () => {
                 {/* General error message */}
                 {errors.general && (
                   <Animated.View
-                    entering={hasAnimated.current ? undefined : FadeIn.duration(600).delay(1000)}
+                    entering={hasAnimated.current ? undefined : FadeIn.duration(600).delay(1200)}
                   >
-                    <Text className="text-red-500 text-xs mb-4 text-center">
-                      {errors.general}
-                    </Text>
+                    <Text className="text-red-500 text-xs mb-4 text-center">{errors.general}</Text>
                   </Animated.View>
                 )}
 
-                {/* Buy button */}
+                {/* Trade button */}
                 <Animated.View
-                  entering={hasAnimated.current ? undefined : FadeInDown.duration(600).delay(1100)}
+                  entering={hasAnimated.current ? undefined : FadeInDown.duration(600).delay(1300)}
                 >
                   <Button
-                    title={`Buy ${selectedCoin}`}
-                    onPress={handleBuyTokens}
+                    title={`${tradeMode === 'buy' ? 'Buy' : 'Sell'} ${selectedCoin}`}
+                    onPress={handleTradeTokens}
                     isLandscape={isLandscape}
                     width="full"
                   />
@@ -357,7 +637,7 @@ const BuyTokensScreen: React.FC = () => {
 
                 {/* Test card info */}
                 <Animated.View
-                  entering={hasAnimated.current ? undefined : FadeInDown.duration(600).delay(1200)}
+                  entering={hasAnimated.current ? undefined : FadeInDown.duration(600).delay(1400)}
                   className="mt-4"
                 >
                   <Text className="text-gray-400 text-xs text-center">
@@ -373,7 +653,7 @@ const BuyTokensScreen: React.FC = () => {
       {/* Success Modal */}
       <SuccessModal
         isVisible={isSuccessModalVisible}
-        title="Purchase Complete!"
+        title={`${tradeMode === 'buy' ? 'Purchase' : 'Sale'} Complete!`}
         message={successMessage}
         onClose={() => {
           setIsSuccessModalVisible(false);
@@ -405,4 +685,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default BuyTokensScreen;
+export default TradeTokensScreen;

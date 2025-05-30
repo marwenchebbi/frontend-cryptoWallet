@@ -241,21 +241,7 @@ const LoginScreen: React.FC = () => {
             {/* Divider */}
             <View className={`w-3/4 h-px bg-gray-300 ${isLandscape ? 'mb-4' : 'mb-6'}`} />
 
-            {/* Social Login */}
-            <Text className={`text-gray-600 ${isLandscape ? 'text-xs mb-2' : 'text-sm mb-4'}`}>
-              Login with
-            </Text>
-            <View className={`flex-row justify-center ${isLandscape ? 'mb-4' : 'mb-6'}`}>
-              <TouchableOpacity className="mx-2">
-                <FontAwesome name="google" size={RFValue(30)} color="#000" />
-              </TouchableOpacity>
-              <TouchableOpacity className="mx-2">
-                <FontAwesome name="facebook" size={RFValue(30)} color="#000" />
-              </TouchableOpacity>
-              <TouchableOpacity className="mx-2">
-                <MaterialCommunityIcons name="apple" size={RFValue(30)} color="#000" />
-              </TouchableOpacity>
-            </View>
+
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>

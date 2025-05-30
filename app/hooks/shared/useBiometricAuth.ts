@@ -58,6 +58,7 @@ export const useBiometricAuth = () => {
     try {
       // Check if 2FA is enabled in SecureStore
       const is2FAEnabled = await SecureStore.getItemAsync('TowFAEnabled');
+      console.log(is2FAEnabled)
       if (is2FAEnabled !== 'true') {
         // If 2FA is not enabled, bypass biometric authentication
         return true;

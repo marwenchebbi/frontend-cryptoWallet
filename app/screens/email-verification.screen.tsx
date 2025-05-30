@@ -163,7 +163,7 @@ const EmailVerificationScreen: React.FC = () => {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-      <StatusBar style="light" translucent={false} />
+      <StatusBar style="dark" translucent={false} />
     </SafeAreaView>
   );
 };
