@@ -22,7 +22,7 @@ import Header from '@/app/components/Header';
 import { useTransactionHistory } from '../hooks/transactions-hooks/history.hooks';
 import { TransactionType } from '../models/transaction';
 
-// Define props interface for HistoryScreen
+
 interface HistoryScreenProps {
   transactionType?: TransactionType;
 }

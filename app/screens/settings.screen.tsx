@@ -26,7 +26,13 @@ import { useWalletMutations } from '../hooks/wallet-info-hooks/lockandunlock.hoo
 import { use2FAMutations } from '../hooks/auth-hooks/update2FA.hooks';
 import SuccessModal from '@/app/components/SuccessModal';
 import { useBiometricAuth } from '../hooks/shared/useBiometricAuth';
+import TrelloOAuthButton from '../utils/trelloButton';
 
+
+interface TrelloTokenData {
+  token: string;
+  expires?: string;
+}
 
 const SettingsScreen = () => {
   const insets = useSafeAreaInsets();
@@ -53,6 +59,10 @@ const SettingsScreen = () => {
     message: string;
   }>({ isVisible: false, title: '', message: '' });
 
+  // États pour Trello
+  const [isTrelloConnected, setIsTrelloConnected] = useState(false);
+  const [trelloConnectionStatus, setTrelloConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -61,11 +71,17 @@ const SettingsScreen = () => {
         const twoFactor = await SecureStore.getItemAsync('TowFAEnabled');
         const lockApp = await SecureStore.getItemAsync('lockAppEnabled');
         const lockAccount = await SecureStore.getItemAsync('isWalletLocked');
+        
+        // Vérifier le statut de Trello
+        const trelloToken = await SecureStore.getItemAsync('trello_access_token');
+        
         setUserId(storedUserId);
         setWalletAddress(storedWalletAddress);
         setTwoFactorEnabled(twoFactor === 'true');
         setLockAppEnabled(lockApp === 'true');
         setLockAccountEnabled(lockAccount === 'true');
+        setIsTrelloConnected(!!trelloToken);
+        setTrelloConnectionStatus(trelloToken ? 'connected' : 'disconnected');
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching settings:', error);
@@ -83,6 +99,59 @@ const SettingsScreen = () => {
 
   const closeSuccessModal = () => {
     setSuccessModal({ isVisible: false, title: '', message: '' });
+  };
+
+  // Handlers pour Trello
+  const handleTrelloSuccess = async (tokenData: TrelloTokenData) => {
+    try {
+      // Stocker le token de manière sécurisée
+      await SecureStore.setItemAsync('trello_access_token', tokenData.token);
+      if (tokenData.expires) {
+        await SecureStore.setItemAsync('trello_token_expires', tokenData.expires);
+      }
+      
+      setIsTrelloConnected(true);
+      setTrelloConnectionStatus('connected');
+      showSuccessModal('Trello Connected', 'Successfully connected to Trello! You can now sync your boards, lists, and cards.');
+    } catch (error) {
+      console.error('Error storing Trello tokens:', error);
+      Alert.alert('Error', 'Failed to save Trello connection. Please try again.');
+    }
+  };
+
+  const handleTrelloError = (error: string) => {
+    console.error('Trello OAuth Error:', error);
+    setTrelloConnectionStatus('disconnected');
+    Alert.alert('Connection Failed', `Failed to connect to Trello: ${error}`);
+  };
+
+  const handleDisconnectTrello = async () => {
+    Alert.alert(
+      'Disconnect Trello',
+      'Are you sure you want to disconnect from Trello? This will remove access to your boards, lists, and cards.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Disconnect',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await SecureStore.deleteItemAsync('trello_access_token');
+              await SecureStore.deleteItemAsync('trello_token_expires');
+              setIsTrelloConnected(false);
+              setTrelloConnectionStatus('disconnected');
+              showSuccessModal('Trello Disconnected', 'Successfully disconnected from Trello.');
+            } catch (error) {
+              console.error('Error disconnecting Trello:', error);
+              Alert.alert('Error', 'Failed to disconnect from Trello. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handle2FAToggle = async (value: boolean) => {
@@ -347,6 +416,63 @@ const SettingsScreen = () => {
                   value={lockAccountEnabled}
                   disabled={isLocking || isUnlocking || attemptingUnlock}
                 />
+              </View>
+            </View>
+          </View>
+
+          {/* Integrations Section */}
+          <View className="mb-6">
+            <Text className="text-gray-500 text-sm mb-2 uppercase font-medium">Integrations</Text>
+            <View className="bg-gray-50 rounded-xl overflow-hidden">
+              {/* Trello Integration */}
+              <View className="py-4 px-4">
+                <View className="flex-row items-center mb-3">
+                  <View className="w-8 h-8 bg-blue-100 rounded-full items-center justify-center mr-3">
+                    <Feather name="trello" size={16} color="#0079BF" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-black text-base">Trello</Text>
+                    <Text className="text-gray-500 text-xs mt-1">
+                      {isTrelloConnected 
+                        ? 'Connected - Sync boards, lists, and cards' 
+                        : 'Connect to sync your boards, lists, and cards'
+                      }
+                    </Text>
+                  </View>
+                  {isTrelloConnected && (
+                    <View className="bg-green-100 px-2 py-1 rounded-full">
+                      <Text className="text-green-800 text-xs font-medium">Connected</Text>
+                    </View>
+                  )}
+                </View>
+                
+                {isTrelloConnected ? (
+                  <TouchableOpacity
+                    onPress={handleDisconnectTrello}
+                    className="bg-red-50 border border-red-200 rounded-lg py-3 px-4"
+                  >
+                    <Text className="text-red-700 text-center font-medium">Disconnect from Trello</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TrelloOAuthButton
+                    onSuccess={handleTrelloSuccess}
+                    onError={handleTrelloError}
+                    style={{
+                      backgroundColor: '#0079BF',
+                      borderRadius: 8,
+                      paddingVertical: 12,
+                      paddingHorizontal: 16,
+                    }}
+                    textStyle={{
+                      color: '#FFFFFF',
+                      fontSize: 16,
+                      fontWeight: '600',
+                    }}
+                    loadingColor="#FFFFFF"
+                    scope="read,write"
+                    expiration="30days"
+                  />
+                )}
               </View>
             </View>
           </View>

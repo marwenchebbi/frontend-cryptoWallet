@@ -23,18 +23,15 @@ import * as SecureStore from 'expo-secure-store';
 // Custom hooks
 import { useOrientation } from '../hooks/shared/useOrientation';
 import { useBiometricAuth } from '../hooks/shared/useBiometricAuth';
+import { useGetWalletInfo } from '../hooks/wallet-info-hooks/balances.hooks';
+import { useGetPrice } from '../hooks/transactions-hooks/price.hooks';
+import { useCreatePaymentIntent, useConfirmPayment, useSellCrypto, useConfirmSell } from '../hooks/transactions-hooks/payment.hooks';
 
 // Components
 import Header from '@/app/components/Header';
 import Button from '@/app/components/Button';
 import SuccessModal from '../components/SuccessModal';
 import BalanceDetails from '../components/BalancesDetails';
-
-// API
-import axiosInstance from '../interceptors/axiosInstance';
-import { useGetWalletInfo } from '../hooks/wallet-info-hooks/balances.hooks';
-import { useGetPrice } from '../hooks/transactions-hooks/price.hooks';
-import { TransactionType } from '../models/transaction';
 
 interface IntentResponse {
   clientSecret: string;
@@ -49,6 +46,12 @@ const TradeTokensScreen: React.FC = () => {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const { isBiometricSupported, authenticate, error: biometricError } = useBiometricAuth();
 
+  // Payment hooks
+  const createPaymentIntent = useCreatePaymentIntent();
+  const confirmPayment = useConfirmPayment();
+  const sellCrypto = useSellCrypto();
+  const confirmSell = useConfirmSell();
+
   // State for tracking animation
   const hasAnimated = useRef(false);
 
@@ -56,8 +59,8 @@ const TradeTokensScreen: React.FC = () => {
   useEffect(() => {
     const fetchUserWalletAddress = async () => {
       const address = await SecureStore.getItemAsync('walletAddress');
-      if(!address){
-        throw new Error;
+      if (!address) {
+        throw new Error('No wallet address found');
       }
       setWalletAddress(address);
     };
@@ -191,13 +194,13 @@ const TradeTokensScreen: React.FC = () => {
     try {
       if (tradeMode === 'buy') {
         // Buy tokens
-        const response = await axiosInstance.post<IntentResponse>('/payment/create-payment-intent', {
+        const response = await createPaymentIntent.mutateAsync({
           amount: parseFloat(prxAmount),
           senderAddress: walletAddress,
           currency: selectedCoin,
         });
 
-        const { clientSecret } = response.data;
+        const { clientSecret } = response;
         if (!clientSecret) throw new Error('Missing client secret from backend');
 
         const { error: initError } = await initPaymentSheet({
@@ -220,12 +223,12 @@ const TradeTokensScreen: React.FC = () => {
           return;
         }
 
-        await axiosInstance.post('/payment/confirm-payment', {
+        await confirmPayment.mutateAsync({
           paymentIntentId: clientSecret.split('_secret_')[0],
         });
       } else {
         // Sell tokens
-        const response = await axiosInstance.post<IntentResponse>('/payment/sell-crypto', {
+        const response = await sellCrypto.mutateAsync({
           amount: parseFloat(prxAmount),
           userAddress: walletAddress,
           currency: selectedCoin,
@@ -236,10 +239,10 @@ const TradeTokensScreen: React.FC = () => {
           },
         });
 
-        const paymentId = response.data.clientSecret.split('_secret_')[0];
+        const paymentId = response.clientSecret.split('_secret_')[0];
         if (!paymentId) throw new Error('Missing payout intent ID from backend');
 
-        await axiosInstance.post('/payment/confirm-sell', {
+        await confirmSell.mutateAsync({
           payoutIntentId: paymentId,
         });
       }
@@ -262,7 +265,6 @@ const TradeTokensScreen: React.FC = () => {
   const handleHistoryIcon = () => {
     router.push({
       pathname: '/screens/history-payment.screen',
-      
     });
   };
 
@@ -272,7 +274,7 @@ const TradeTokensScreen: React.FC = () => {
       <Animated.View
         entering={hasAnimated.current ? undefined : FadeIn.duration(600)}
         className="absolute top-0 left-0 right-0 z-40 bg-white"
-        style={{ paddingTop: insets.top  }}
+        style={{ paddingTop: insets.top }}
       >
         <Header
           title={`${tradeMode === 'buy' ? 'Buy' : 'Sell'} Tokens`}
@@ -294,14 +296,14 @@ const TradeTokensScreen: React.FC = () => {
             flexGrow: 1,
             justifyContent: 'center',
             paddingBottom: insets.bottom + 50,
-            paddingTop :insets.top + 50
+            paddingTop: insets.top + 50,
           }}
           keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl refreshing={isWalletLoading || isPriceLoading} onRefresh={updateWalletData} />
           }
         >
-          {/* Current balance display 
+          {/* Current balance display */}
           <Animated.View
             entering={hasAnimated.current ? undefined : FadeInDown.duration(600).delay(200)}
             className="items-center mt-20"
@@ -319,7 +321,7 @@ const TradeTokensScreen: React.FC = () => {
           </Animated.View>
 
           {/* Refresh tip */}
-           {/*{!isWalletLoading && (
+          {!isWalletLoading && (
             <Animated.View
               entering={hasAnimated.current ? undefined : FadeInDown.duration(600).delay(300)}
               className="mt-4 p-2 bg-white rounded"

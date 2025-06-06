@@ -16,7 +16,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ title, onBackPress, isLandscape,backEnabled , historyEnabled , onHistoryPress}) => {
   return (
     <View
-      className={`w-full h-15 flex-row items-center justify-between px-4 py-2`}
+      className={`w-full h-15 flex-row items-center justify-between space-x-3 px-4 py-2`}
     >
 
       

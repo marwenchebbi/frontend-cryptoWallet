@@ -1,39 +1,40 @@
 {
-  "expo": {
-    
-    "backgroundColor": "#ffffff",
-    "name": "Wallet",
-    "slug": "Wallet",
-    "splash": {
-      "backgroundColor": "#FFFFFF",
-      "resizeMode": "cover"
-    },
-    "version": "1.0.0",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "web": {
-      "bundler": "metro",
-      "output": "static"
-    },
-    "ios": {
-      "infoPlist": {
-        "NSFaceIDUsageDescription": "This app uses Face ID or Touch ID to verify your identity during login.",
-        "NSCameraUsageDescription": "This app requires camera access to scan QR codes for wallet addresses."
-      }
-    },
-    "android": {
-      "package": "com.anonymous.Wallet",
-      "permissions": ["android.permission.CAMERA"]
-    },
-    "plugins": [
-      "expo-router",
-      "expo-secure-store",
-      "expo-splash-screen",
-      "expo-camera"
-    ],
-    "experiments": {
-      "typedRoutes": true
-    },
-    "scheme": "myapp"
-  }
+
+  "backgroundColor": "#ffffff",
+  "name": "Wallet",
+  "slug": "Wallet",
+  "splash": {
+    "backgroundColor": "#FFFFFF",
+    "resizeMode": "cover"
+  },
+  "version": "1.0.0",
+  "userInterfaceStyle": "automatic",
+  "newArchEnabled": true,
+  "web": {
+    "bundler": "metro",
+    "output": "static"
+  },
+  "ios": {
+    "infoPlist": {
+      "NSFaceIDUsageDescription": "This app uses Face ID or Touch ID to verify your identity during login.",
+      "NSCameraUsageDescription": "This app requires camera access to scan QR codes for wallet addresses."
+    }
+  },
+  "android": {
+    "package": "com.anonymous.Wallet",
+    "permissions": [
+      "android.permission.CAMERA"
+    ]
+  },
+  "plugins": [
+    "expo-router",
+    "expo-secure-store",
+    "expo-splash-screen",
+    "expo-camera"
+  ],
+  "experiments": {
+    "typedRoutes": true
+  },
+  "scheme": "myapp"
+  
 }
