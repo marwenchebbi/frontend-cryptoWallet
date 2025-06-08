@@ -1,6 +1,5 @@
 // hooks/auth-hooks/useLogout.ts
 import { LogoutResponse } from '@/app/models/auth';
-import { IP_ADDRESS } from '@/app/models/types';
 import { useMutation } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';
 

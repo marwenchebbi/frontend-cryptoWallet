@@ -1,7 +1,6 @@
 // hooks/useWalletMutations.ts
 import axiosInstance from '@/app/interceptors/axiosInstance';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Alert } from 'react-native';
 

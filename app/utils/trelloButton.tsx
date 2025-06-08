@@ -1,3 +1,5 @@
+
+//this component is used to connect to trello account its handle the auth to trello account
 import React, { useState } from 'react';
 import {
   TouchableOpacity,
@@ -13,9 +15,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import * as SecureStore from 'expo-secure-store';
-import { IP_ADDRESS } from '../models/types';
 
 
+const IP_ADDRESS = process.env.EXPO_PUBLIC_IP_ADDRESS
 
 // SOLUTION 1: Utiliser l'URL scheme d'Expo Go
 const getExpoGoRedirectUri = () => {
@@ -27,7 +29,7 @@ const getExpoGoRedirectUri = () => {
 
 // Trello OAuth Configuration
 const TRELLO_CONFIG = {
-  apiKey: '0947e46b219249761a0e0979b700f856', // Remplacez par votre clé API Trello
+  apiKey: process.env.EXPO_PUBLIC_TRELLO_API_KEY || '', // Remplacez par votre clé API Trello
   appName: 'Proxym', // Nom de votre application
   // SOLUTION 1: Utilisez cette ligne pour Expo Go
   redirectUri: getExpoGoRedirectUri(),
@@ -246,16 +248,17 @@ const TrelloOAuthButton: React.FC<TrelloOAuthButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#0079BF',
+    backgroundColor: '#e9d5ff',
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 48,
+    
   },
   buttonText: {
-    color: '#fff',
+    color: '#000',
     fontSize: 16,
     fontWeight: '600',
   },

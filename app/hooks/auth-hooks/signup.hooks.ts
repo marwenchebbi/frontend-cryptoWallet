@@ -1,12 +1,13 @@
 // hooks/useSignup.ts
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
-import { IP_ADDRESS } from '../../models/types';
+
 import { SignupData } from '@/app/models/auth';
 import { ErrorResponse } from '@/app/models/error';
 import axiosInstance from '@/app/interceptors/axiosInstance';
 
 const signupUser = async (data: SignupData): Promise<boolean> => {
+  const IP_ADDRESS = process.env.EXPO_PUBLIC_IP_ADDRESS
   const url = `http://${IP_ADDRESS}:3000/auth/signup`;
 
   try {

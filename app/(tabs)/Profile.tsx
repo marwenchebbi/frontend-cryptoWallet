@@ -223,12 +223,16 @@ const ProfileScreen: React.FC = () => {
       <Animated.View
         entering={FadeIn.duration(600)}
         className="absolute top-0 left-0 right-0 z-50 bg-white"
-        style={{ paddingTop: insets.top, borderBottomLeftRadius: 12,
-          borderBottomRightRadius: 12,shadowColor: '#fff',
+        style={{
+          paddingTop: insets.top,
+          borderBottomLeftRadius: 12,
+          borderBottomRightRadius: 12,
+          shadowColor: '#fff',
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.1,
           shadowRadius: 6,
-          elevation: 1,}}
+          elevation: 1,
+        }}
       >
         <Header
           title="Profile"
@@ -237,18 +241,6 @@ const ProfileScreen: React.FC = () => {
           backEnabled={false}
           historyEnabled={false}
         />
-
-        {/* Logout Button */}
-        {(!isEditingName || !isEditingPassword) && (
-          <Animated.View
-            entering={FadeInDown.duration(600).delay(900)}
-            className="mt-auto py-4 items-end px-8"
-          >
-            <TouchableOpacity onPress={handleLogout} disabled={isLogoutPending}>
-            <Text className=' text-red-600  text-xl '> Log Out</Text>
-            </TouchableOpacity>
-          </Animated.View>
-        )}
       </Animated.View>
 
       <KeyboardAvoidingView
@@ -279,7 +271,6 @@ const ProfileScreen: React.FC = () => {
                   size={120}
                   color="black"
                   backgroundColor="white"
-                  
                 />
               </Animated.View>
             ) : (
@@ -400,7 +391,7 @@ const ProfileScreen: React.FC = () => {
               <>
                 {/* Old Password Field */}
                 <Animated.View
-                  
+                  entering={FadeInDown.duration(600).delay(1000)}
                   className={`w-full max-w-md ${isLandscape ? 'mb-2' : 'mb-6'}`}
                 >
                   <Text className="text-gray-600 text-sm mb-2">Old Password</Text>
@@ -422,12 +413,12 @@ const ProfileScreen: React.FC = () => {
                         onChangeText={(text) => handlePasswordChange('oldPassword', text)}
                         secureTextEntry
                         autoCapitalize="none"
-                    />
+                      />
                     </View>
                   </LinearGradient>
                   {errors.oldPassword && (
                     <Animated.Text
-                      
+                      entering={FadeIn.duration(600).delay(1100)}
                       className="text-red-500 text-xs mt-1 text-center"
                     >
                       {errors.oldPassword}
@@ -437,10 +428,10 @@ const ProfileScreen: React.FC = () => {
 
                 {/* New Password Field */}
                 <Animated.View
-                  
+                  entering={FadeInDown.duration(600).delay(1200)}
                   className={`w-full max-w-md ${isLandscape ? 'mb-2' : 'mb-6'}`}
                 >
-                  <Text className="text-gray-600 text-sm mb-2">New Password</Text>
+                  <Text className="text  -gray-600 text-sm mb-2">New Password</Text>
                   <LinearGradient
                     colors={['#A855F7', '#F472B6']}
                     start={{ x: 0, y: 0 }}
@@ -464,7 +455,7 @@ const ProfileScreen: React.FC = () => {
                   </LinearGradient>
                   {errors.newPassword && (
                     <Animated.Text
-                      
+                      entering={FadeIn.duration(600).delay(1300)}
                       className="text-red-500 text-xs mt-1 text-center"
                     >
                       {errors.newPassword}
@@ -492,23 +483,37 @@ const ProfileScreen: React.FC = () => {
               />
             </Animated.View>
 
-            {/* General Error */}
-            {errors.general && (
-              <Animated.Text
-                entering={FadeIn.duration(600).delay(1500)}
-                className="text-red-500 text-xs mt-4 text-center"
-              >
-                {errors.general}
-              </Animated.Text>
-            )}
-
             {/* Settings Button */}
             <Animated.View
-              entering={FadeInDown.duration(600).delay(1600)}
+              entering={FadeInDown.duration(600).delay(1500)}
               className="w-full max-w-md mt-4 items-center"
             >
               <Button title="Settings" onPress={handleSettings} isLandscape={isLandscape} />
             </Animated.View>
+
+            {/* Logout Button */}
+            <Animated.View
+              entering={FadeInDown.duration(600).delay(1600)}
+              className="w-full max-w-md mt-4 items-center"
+            >
+              <Button
+                className='bg-[#f46f6f59]'
+                title="Log Out"
+                onPress={handleLogout}
+                isLandscape={isLandscape}
+
+              />
+            </Animated.View>
+
+            {/* General Error */}
+            {errors.general && (
+              <Animated.Text
+                entering={FadeIn.duration(600).delay(1700)}
+                className="text-red-500 text-xs mt-4 text-center"
+                >
+                {errors.general}
+              </Animated.Text>
+            )}
           </Animated.View>
         </Animated.ScrollView>
       </KeyboardAvoidingView>

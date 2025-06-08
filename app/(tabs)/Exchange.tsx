@@ -245,6 +245,7 @@ const Exchange: React.FC = () => {
           isLandscape={isLandscape}
           backEnabled={false}
           historyEnabled={true}
+          rewardEnbaled={true}
         />
       </Animated.View>
       <KeyboardAvoidingView

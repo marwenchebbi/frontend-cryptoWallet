@@ -1,6 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import axios from 'axios';
-import { IP_ADDRESS } from '../../models/types';
+
 import { TransferData } from '@/app/models/transaction';
 import axiosInstance from '@/app/interceptors/axiosInstance';
 import { ErrorResponse } from '@/app/models/error';

@@ -10,6 +10,7 @@ import { RFValue } from 'react-native-responsive-fontsize';
 import { useOrientation } from '../hooks/shared/useOrientation';
 import { isAuthenticated } from '../hooks/shared/useIsAuthenticated';
 
+
 const CryptoWalletScreen = () => {
   const router = useRouter();
   const isLandscape = useOrientation();
@@ -456,7 +457,7 @@ const CryptoWalletScreen = () => {
             <Text
               style={{
                 color: '#6B7280',
-                fontSize: RFValue(isLandscape ? 10 : 12),
+                fontSize: RFValue(isLandscape ? 7: 9),
                 textAlign: 'center',
                 flex: 1,
                 fontFamily: 'Inter-Regular',

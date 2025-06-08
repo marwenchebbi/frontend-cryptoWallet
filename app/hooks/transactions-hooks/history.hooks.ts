@@ -1,8 +1,7 @@
 import { TransactionHistoryResponse, TransactionType } from '@/app/models/transaction';
-import { IP_ADDRESS } from '@/app/models/types';
+
 import { useQuery } from '@tanstack/react-query';
-import * as SecureStore from 'expo-secure-store';
-import axios from 'axios';
+
 import { ErrorResponse } from '@/app/models/error';
 import axiosInstance from '@/app/interceptors/axiosInstance';
 

@@ -123,6 +123,7 @@ const Home: React.FC = () => {
           isLandscape={isLandscape}
           backEnabled={false}
           historyEnabled={false}
+          rewardEnbaled={true}
         />
       </Animated.View>
 

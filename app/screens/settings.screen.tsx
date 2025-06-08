@@ -7,7 +7,6 @@ import {
   ScrollView,
   ActivityIndicator,
   Switch,
-  TouchableOpacity,
   TextInput,
   Modal,
   Alert,
@@ -27,7 +26,7 @@ import { use2FAMutations } from '../hooks/auth-hooks/update2FA.hooks';
 import SuccessModal from '@/app/components/SuccessModal';
 import { useBiometricAuth } from '../hooks/shared/useBiometricAuth';
 import TrelloOAuthButton from '../utils/trelloButton';
-
+import Button from '@/app/components/Button';
 
 interface TrelloTokenData {
   token: string;
@@ -59,7 +58,6 @@ const SettingsScreen = () => {
     message: string;
   }>({ isVisible: false, title: '', message: '' });
 
-  // États pour Trello
   const [isTrelloConnected, setIsTrelloConnected] = useState(false);
   const [trelloConnectionStatus, setTrelloConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
 
@@ -71,8 +69,6 @@ const SettingsScreen = () => {
         const twoFactor = await SecureStore.getItemAsync('TowFAEnabled');
         const lockApp = await SecureStore.getItemAsync('lockAppEnabled');
         const lockAccount = await SecureStore.getItemAsync('isWalletLocked');
-        
-        // Vérifier le statut de Trello
         const trelloToken = await SecureStore.getItemAsync('trello_access_token');
         
         setUserId(storedUserId);
@@ -101,15 +97,12 @@ const SettingsScreen = () => {
     setSuccessModal({ isVisible: false, title: '', message: '' });
   };
 
-  // Handlers pour Trello
   const handleTrelloSuccess = async (tokenData: TrelloTokenData) => {
     try {
-      // Stocker le token de manière sécurisée
       await SecureStore.setItemAsync('trello_access_token', tokenData.token);
       if (tokenData.expires) {
         await SecureStore.setItemAsync('trello_token_expires', tokenData.expires);
       }
-      
       setIsTrelloConnected(true);
       setTrelloConnectionStatus('connected');
       showSuccessModal('Trello Connected', 'Successfully connected to Trello! You can now sync your boards, lists, and cards.');
@@ -125,15 +118,12 @@ const SettingsScreen = () => {
     Alert.alert('Connection Failed', `Failed to connect to Trello: ${error}`);
   };
 
-  const handleDisconnectTrello = async () => {
+  const handleDisconnectTrello = () => {
     Alert.alert(
       'Disconnect Trello',
       'Are you sure you want to disconnect from Trello? This will remove access to your boards, lists, and cards.',
       [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
+        { text: 'Cancel', style: 'cancel' },
         {
           text: 'Disconnect',
           style: 'destructive',
@@ -188,68 +178,33 @@ const SettingsScreen = () => {
         case 'twoFactor':
           await handle2FAToggle(value);
           break;
-
         case 'lockApp':
-          try {
-            const authSuccess = await authenticate();
-            if (authSuccess || (await SecureStore.getItemAsync('TowFAEnabled')) !== 'true') {
-              setLockAppEnabled(value);
-              await SecureStore.setItemAsync('lockAppEnabled', value.toString());
-              showSuccessModal(
-                value ? 'App Locked' : 'App Unlocked',
-                `App lock has been ${value ? 'enabled' : 'disabled'} successfully.`,
-              );
-            } else {
-              Alert.alert(
-                'Authentication Failed',
-                'Biometric verification is required to change app lock settings.',
-              );
-            }
-          } catch (error) {
-            console.error('Error during biometric authentication:', error);
-            Alert.alert('Error', 'Failed to authenticate. Please try again.');
+          const authSuccess = await authenticate();
+          if (authSuccess || (await SecureStore.getItemAsync('TowFAEnabled')) !== 'true') {
+            setLockAppEnabled(value);
+            await SecureStore.setItemAsync('lockAppEnabled', value.toString());
+            showSuccessModal(
+              value ? 'App Locked' : 'App Unlocked',
+              `App lock has been ${value ? 'enabled' : 'disabled'} successfully.`,
+            );
+          } else {
+            Alert.alert('Authentication Failed', 'Biometric verification is required to change app lock settings.');
           }
           break;
-
         case 'lockAccount':
           if (!userId || !walletAddress) {
             Alert.alert('Error', 'User ID or wallet address not found');
             return;
           }
-
-          if (!isBiometricSupported || !isBiometricEnrolled) {
-            Alert.alert(
-              'Biometric Required',
-              'Please set up biometric authentication in your device settings to lock or unlock your account.',
-            );
-            return;
+          if (value) {
+            await lockWallet({ userId, walletAddress });
+            setLockAccountEnabled(true);
+            await SecureStore.setItemAsync('isWalletLocked', 'true');
+            showSuccessModal('Account Locked', 'Your account has been locked successfully.');
+          } else {
+            setAttemptingUnlock(true);
+            setShowPasswordModal(true);
           }
-
-          try {
-            const authSuccess = await authenticate();
-            if (authSuccess) {
-              if (value) {
-                await lockWallet({ userId, walletAddress });
-                setLockAccountEnabled(true);
-                await SecureStore.setItemAsync('TowFAEnabled', 'true');
-                showSuccessModal('Account Locked', 'Your account has been locked successfully.');
-              } else {
-                setAttemptingUnlock(true);
-                setShowPasswordModal(true);
-              }
-            } else {
-              Alert.alert(
-                'Authentication Failed',
-                'Biometric verification is required to lock or unlock your account.',
-              );
-            }
-          } catch (error) {
-            console.error('Error during biometric authentication:', error);
-            Alert.alert('Error', 'Failed to authenticate. Please try again.');
-          }
-          break;
-
-        default:
           break;
       }
     } catch (error) {
@@ -265,30 +220,16 @@ const SettingsScreen = () => {
     }
 
     try {
-      const authSuccess = await authenticate();
-      if (authSuccess) {
-        await unlockWallet({ userId, walletAddress, password });
-        setLockAccountEnabled(false);
-        await SecureStore.setItemAsync('TowFAEnabled', 'false');
-        setShowPasswordModal(false);
-        setPassword('');
-        setAttemptingUnlock(false);
-        showSuccessModal('Account Unlocked', 'Your account has been unlocked successfully.');
-      } else {
-        Alert.alert(
-          'Authentication Failed',
-          'Biometric verification is required to unlock your account.',
-        );
-        setShowPasswordModal(false);
-        setPassword('');
-        setAttemptingUnlock(false);
-      }
-    } catch (error) {
-      console.error('Error unlocking wallet:', error);
-      Alert.alert('Error', 'Failed to unlock wallet. Please check your password and try again.');
+      await unlockWallet({ userId, walletAddress, password });
+      setLockAccountEnabled(false);
+      await SecureStore.setItemAsync('isWalletLocked', 'false');
       setShowPasswordModal(false);
       setPassword('');
       setAttemptingUnlock(false);
+      showSuccessModal('Account Unlocked', 'Your account has been unlocked successfully.');
+    } catch (error) {
+      console.error('Error unlocking wallet:', error);
+      Alert.alert('Error', 'Failed to unlock wallet. Please check your password and try again.');
     }
   };
 
@@ -309,13 +250,13 @@ const SettingsScreen = () => {
   const renderBiometricAlert = () => {
     if (!isBiometricSupported || !isBiometricEnrolled) {
       return (
-        <View className="bg-yellow-50 px-4 py-3 mb-4 rounded-lg border border-yellow-200">
-          <Text className="text-yellow-800">
+        <Animated.View entering={FadeInDown.duration(600).delay(200)} className="bg-yellow-50 px-4 py-3 mb-4 rounded-lg border border-yellow-200">
+          <Text className="text-yellow-800 text-sm">
             {!isBiometricSupported
-              ? "Your device doesn't support biometric authentication. Some security features may be limited."
-              : 'Please set up biometric authentication in your device settings to use all security features.'}
+              ? "Your device doesn't support biometric authentication."
+              : 'Please set up biometric authentication in your device settings.'}
           </Text>
-        </View>
+        </Animated.View>
       );
     }
     return null;
@@ -325,7 +266,7 @@ const SettingsScreen = () => {
     <SafeAreaView className="flex-1 bg-white">
       <Animated.View
         entering={FadeIn.duration(600)}
-        className="absolute top-0 left-0 right-0 z-40 bg-transparent"
+        className="absolute top-0 left-0 right-0 z-50 bg-white"
         style={{ paddingTop: insets.top }}
       >
         <Header
@@ -341,29 +282,28 @@ const SettingsScreen = () => {
         contentContainerStyle={{
           flexGrow: 1,
           paddingTop: insets.top + 60,
-          paddingBottom: insets.bottom + 20,
+          paddingBottom: insets.bottom + 40,
         }}
         keyboardShouldPersistTaps="handled"
       >
         <Animated.View
           entering={FadeInDown.duration(600).delay(200)}
-          className={`flex-1 ${isLandscape ? 'px-6' : 'px-4'} pb-4`}
+          className={`flex-1 items-center ${isLandscape ? 'px-6' : 'px-4'}`}
         >
           {renderBiometricAlert()}
 
           {/* Security Section */}
-          <View className="mb-6">
-            <Text className="text-gray-500 text-sm mb-2 uppercase font-medium">Security</Text>
+          <Animated.View entering={FadeInDown.duration(600).delay(300)} className="w-full max-w-md mb-6">
+            <Text className="text-gray-600 text-sm mb-2 uppercase font-medium">Security</Text>
             <View className="bg-gray-50 rounded-xl overflow-hidden">
-              {/* Two Factor Verification */}
               <View className="flex-row justify-between items-center py-4 px-4 border-b border-gray-100">
                 <View className="flex-row items-center">
                   <View className="w-8 h-8 bg-purple-100 rounded-full items-center justify-center mr-3">
-                    <Feather name="lock" size={16} color="#A855F7" />
+                    <Feather name="lock" size={16} color="#374151" />
                   </View>
                   <View>
                     <Text className="text-black text-base">Two-Factor Verification</Text>
-                    <Text className="text-gray-500 text-xs mt-1">Use biometrics to secure your account</Text>
+                    <Text className="text-gray-600 text-xs mt-1">Use biometrics to secure your account</Text>
                   </View>
                 </View>
                 <Switch
@@ -375,16 +315,14 @@ const SettingsScreen = () => {
                   disabled={isEnabling2FA || isDisabling2FA}
                 />
               </View>
-
-              {/* Lock App */}
               <View className="flex-row justify-between items-center py-4 px-4 border-b border-gray-100">
                 <View className="flex-row items-center">
                   <View className="w-8 h-8 bg-purple-100 rounded-full items-center justify-center mr-3">
-                    <Feather name="smartphone" size={16} color="#A855F7" />
+                    <Feather name="smartphone" size={16} color="#374151" />
                   </View>
                   <View>
                     <Text className="text-black text-base">Lock App</Text>
-                    <Text className="text-gray-500 text-xs mt-1">Require authentication at app start</Text>
+                    <Text className="text-gray-600 text-xs mt-1">Require authentication at app start</Text>
                   </View>
                 </View>
                 <Switch
@@ -396,16 +334,14 @@ const SettingsScreen = () => {
                   disabled={isLoading}
                 />
               </View>
-
-              {/* Lock Account */}
               <View className="flex-row justify-between items-center py-4 px-4">
                 <View className="flex-row items-center">
                   <View className="w-8 h-8 bg-purple-100 rounded-full items-center justify-center mr-3">
-                    <Feather name="user-x" size={16} color="#A855F7" />
+                    <Feather name="user-x" size={16} color="#374151" />
                   </View>
                   <View>
                     <Text className="text-black text-base">Lock Account</Text>
-                    <Text className="text-gray-500 text-xs mt-1">Prevent transactions until unlocked</Text>
+                    <Text className="text-gray-600 text-xs mt-1">Prevent transactions until unlocked</Text>
                   </View>
                 </View>
                 <Switch
@@ -418,25 +354,21 @@ const SettingsScreen = () => {
                 />
               </View>
             </View>
-          </View>
+          </Animated.View>
 
           {/* Integrations Section */}
-          <View className="mb-6">
-            <Text className="text-gray-500 text-sm mb-2 uppercase font-medium">Integrations</Text>
+          <Animated.View entering={FadeInDown.duration(600).delay(400)} className="w-full max-w-md mb-6">
+            <Text className="text-gray-600 text-sm mb-2 uppercase font-medium">Integrations</Text>
             <View className="bg-gray-50 rounded-xl overflow-hidden">
-              {/* Trello Integration */}
               <View className="py-4 px-4">
-                <View className="flex-row items-center mb-3">
+                <View className="flex-row items-center mb-4">
                   <View className="w-8 h-8 bg-blue-100 rounded-full items-center justify-center mr-3">
-                    <Feather name="trello" size={16} color="#0079BF" />
+                    <Feather name="trello" size={16} color="#374151" />
                   </View>
                   <View className="flex-1">
                     <Text className="text-black text-base">Trello</Text>
-                    <Text className="text-gray-500 text-xs mt-1">
-                      {isTrelloConnected 
-                        ? 'Connected - Sync boards, lists, and cards' 
-                        : 'Connect to sync your boards, lists, and cards'
-                      }
+                    <Text className="text-gray-600 text-xs mt-1">
+                      {isTrelloConnected ? 'Connected - Sync boards, lists, and cards' : 'Connect to sync your boards, lists, and cards'}
                     </Text>
                   </View>
                   {isTrelloConnected && (
@@ -445,56 +377,44 @@ const SettingsScreen = () => {
                     </View>
                   )}
                 </View>
-                
                 {isTrelloConnected ? (
-                  <TouchableOpacity
-                    onPress={handleDisconnectTrello}
-                    className="bg-red-50 border border-red-200 rounded-lg py-3 px-4"
-                  >
-                    <Text className="text-red-700 text-center font-medium">Disconnect from Trello</Text>
-                  </TouchableOpacity>
+                  <Animated.View entering={FadeInDown.duration(600).delay(500)} className="w-full">
+                    <Button
+                      title="Disconnect from Trello"
+                      onPress={handleDisconnectTrello}
+                      isLandscape={isLandscape}
+                      className="bg-[#f46f6f59]"
+                    />
+                  </Animated.View>
                 ) : (
-                  <TrelloOAuthButton
-                    onSuccess={handleTrelloSuccess}
-                    onError={handleTrelloError}
-                    style={{
-                      backgroundColor: '#0079BF',
-                      borderRadius: 8,
-                      paddingVertical: 12,
-                      paddingHorizontal: 16,
-                    }}
-                    textStyle={{
-                      color: '#FFFFFF',
-                      fontSize: 16,
-                      fontWeight: '600',
-                    }}
-                    loadingColor="#FFFFFF"
-                    scope="read,write"
-                    expiration="30days"
-                  />
+                  <Animated.View entering={FadeInDown.duration(600).delay(500)} className="w-full">
+
+                      <TrelloOAuthButton
+                        onSuccess={handleTrelloSuccess}
+                        onError={handleTrelloError}
+                        loadingColor="#A855F7"
+                        scope="read,write"
+                        expiration="30days"
+                      />
+                  </Animated.View>
                 )}
               </View>
             </View>
-          </View>
+          </Animated.View>
 
           {/* Activity Section */}
-          <View className="mb-6">
-            <Text className="text-gray-500 text-sm mb-2 uppercase font-medium">Activity</Text>
-            <View className="bg-gray-50 rounded-xl overflow-hidden">
-              <TouchableOpacity
-                className="flex-row justify-between items-center py-4 px-4"
+          <Animated.View entering={FadeInDown.duration(600).delay(600)} className="w-full max-w-md mb-6">
+            <Text className="text-gray-600 text-sm mb-2 uppercase font-semibold">Activity</Text>
+            <View className="bg-gray-50 rounded-lg overflow-hidden">
+              <Button
+                title="View Action Log"
                 onPress={navigateToActions}
-              >
-                <View className="flex-row items-center">
-                  <View className="w-8 h-8 bg-purple-100 rounded-full items-center justify-center mr-3">
-                    <Feather name="activity" size={16} color="#A855F7" />
-                  </View>
-                  <Text className="text-black text-base">Action Log</Text>
-                </View>
-                <Feather name="chevron-right" size={20} color="#9CA3AF" />
-              </TouchableOpacity>
+                isLandscape={isLandscape}
+                className="flex-row justify-between items-center py-4 px-4"
+            
+              />
             </View>
-          </View>
+          </Animated.View>
 
           <LinearGradient
             colors={['#A855F7', '#F472B6']}
@@ -508,9 +428,9 @@ const SettingsScreen = () => {
             }}
           />
 
-          <View className="items-center mt-6">
-            <Text className="text-gray-400 text-sm">Version 1.0.0</Text>
-          </View>
+          <Animated.View entering={FadeInDown.duration(600).delay(700)} className="items-center mt-6">
+            <Text className="text-gray-600 text-sm">Version 1.0.0</Text>
+          </Animated.View>
         </Animated.View>
       </ScrollView>
 
@@ -526,46 +446,49 @@ const SettingsScreen = () => {
         }}
       >
         <View className="flex-1 justify-center items-center bg-black/50">
-          <View className="bg-white rounded-2xl p-6 w-4/5">
-            <Text className="text-lg font-semibold mb-4">Enter Password</Text>
-            <Text className="text-gray-500 mb-4">
-              Enter your password to unlock your account. You also need to verify with biometrics.
+          <Animated.View entering={FadeInDown.duration(600)} className="bg-white rounded-2xl p-6 w-4/5 max-w-md">
+            <Text className="text-lg font-semibold text-black mb-4">Enter Password</Text>
+            <Text className="text-gray-600 text-sm mb-4">
+              Enter your password to unlock your account.
             </Text>
-            <TextInput
-              className="border border-gray-300 rounded-lg p-3 mb-4"
-              placeholder="Password"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
+            <LinearGradient
+              colors={['#A855F7', '#F472B6']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              className="rounded-full p-[2px] mb-4"
+            >
+              <TextInput
+                className="bg-white text-black rounded-full py-3 px-4"
+                placeholder="Password"
+                placeholderTextColor="#9CA3AF"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+              />
+            </LinearGradient>
             <View className="flex-row justify-end space-x-4">
-              <TouchableOpacity
+              <Button
+                title="Cancel"
                 onPress={() => {
                   setShowPasswordModal(false);
                   setPassword('');
                   setAttemptingUnlock(false);
                 }}
-              >
-                <Text className="text-gray-500 font-medium mx-2">Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+                isLandscape={isLandscape}
+                className="bg-gray-100"
+
+              />
+              <Button
+                title={isUnlocking ? 'Unlocking...' : 'Unlock'}
                 onPress={handleUnlockWallet}
-                disabled={isUnlocking || !password}
-              >
-                <Text
-                  className={`font-medium ${
-                    isUnlocking || !password ? 'text-gray-400' : 'text-purple-600'
-                  }`}
-                >
-                  {isUnlocking ? 'Unlocking...' : 'Unlock'}
-                </Text>
-              </TouchableOpacity>
+                isLandscape={isLandscape}
+                className={isUnlocking || !password ? 'text-gray-400' : 'text-black'}
+              />
             </View>
-          </View>
+          </Animated.View>
         </View>
       </Modal>
 
-      {/* Success Modal */}
       <SuccessModal
         isVisible={successModal.isVisible}
         onClose={closeSuccessModal}

@@ -17,29 +17,35 @@ import * as SecureStore from 'expo-secure-store';
 import { LinearGradient } from 'expo-linear-gradient';
 import Header from '@/app/components/Header';
 import { useAction } from '../hooks/action-hooks/action.hooks';
+import { useQuery } from '@tanstack/react-query'; // Import useQuery
 
 const ActionsScreen: React.FC = () => {
     const insets = useSafeAreaInsets();
     const isLandscape = useOrientation();
-    const handleBack = useHandleBack(); // Use the custom hook for back navigation
+    const handleBack = useHandleBack();
     const router = useRouter();
 
     const [backEnabled, setBackEnabled] = useState<boolean>(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [userId, setUserId] = useState<string | null>(null);
 
     // Fetch userId from SecureStore
-    const [userId, setUserId] = useState<string | null>(null);
     useEffect(() => {
         const fetchUserId = async () => {
-            const storedUserId = await SecureStore.getItemAsync('userId');
-            setUserId(storedUserId);
+            try {
+                const storedUserId = await SecureStore.getItemAsync('userId');
+                setUserId(storedUserId);
+            } catch (error) {
+                console.error('Failed to fetch userId:', error);
+                // Optionally handle error (e.g., show a message or redirect)
+            }
         };
         fetchUserId();
     }, []);
 
-    // Fetch actions using the useAction hook
-    const { getActions, isCreating, createError } = useAction();
-    const { data: actions, isLoading, error, refetch } = getActions(userId || '');
+    // Use the useAction hook
+const { getActions } = useAction();
+const { data: actions, isLoading, error, refetch } = useQuery(getActions());
 
     // Handle pull-to-refresh
     const onRefresh = async () => {
@@ -82,7 +88,7 @@ const ActionsScreen: React.FC = () => {
             >
                 <Header
                     title="Actions"
-                    onBackPress={handleBack} // Pass the handleBack function to the Header
+                    onBackPress={handleBack}
                     isLandscape={isLandscape}
                     backEnabled={backEnabled}
                     historyEnabled={false}
@@ -140,27 +146,25 @@ const ActionsScreen: React.FC = () => {
                         <Animated.View entering={FadeInDown.duration(600).delay(300)}>
                             {actions.map((action, index) => (
                                 <View key={index}>
-                                    {(
-                                        <LinearGradient
-                                            colors={['#A855F7', '#F472B6']}
-                                            start={{ x: 0, y: 0 }}
-                                            end={{ x: 1, y: 0 }}
-                                            style={{
-                                                height: 2, // Thicker line
-                                                marginVertical: 4, // Adjusted spacing
-                                                borderRadius: 2,
-                                                opacity: 70,
-                                            }}
-                                        />
-                                    )}
+                                    <LinearGradient
+                                        colors={['#A855F7', '#F472B6']}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                        style={{
+                                            height: 2,
+                                            marginVertical: 4,
+                                            borderRadius: 2,
+                                            opacity: 0.7, // Fixed opacity value (0.7 instead of 70)
+                                        }}
+                                    />
                                     <View className="py-3 px-2">
-                                        <Text className="text-black text-base">{action.description}</Text>
+                                        <Text className="text-black text-base">
+                                            {action.description}
+                                        </Text>
                                         <Text className="text-gray-500 text-sm mt-1">
                                             {formatDate(action.date)}
                                         </Text>
                                     </View>
-
-
                                 </View>
                             ))}
                         </Animated.View>

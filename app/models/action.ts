@@ -1,7 +1,6 @@
 // Define interfaces for DTOs based on provided definitions
 export interface ActionDTO {
     desc: string;
-    userId: string;
   }
   
  export  interface FormattedAction {

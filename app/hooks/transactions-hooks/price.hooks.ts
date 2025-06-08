@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { IP_ADDRESS } from "@/app/models/types";
+
 import { useQuery } from "@tanstack/react-query";
 import axiosInstance from '@/app/interceptors/axiosInstance';
 

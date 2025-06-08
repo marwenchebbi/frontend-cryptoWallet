@@ -234,6 +234,7 @@ const TransferScreen: React.FC = () => {
           isLandscape={isLandscape}
           backEnabled={false}
           historyEnabled={true}
+          rewardEnbaled={true}
         />
       </Animated.View>
 

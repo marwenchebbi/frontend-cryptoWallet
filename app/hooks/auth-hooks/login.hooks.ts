@@ -1,13 +1,13 @@
 // hooks/useLogin.ts
 import { useMutation } from '@tanstack/react-query';
-import { IP_ADDRESS } from '../../models/types';
+
 import { LoginData, LoginResponse } from '@/app/models/auth';
 import { ErrorResponse } from '@/app/models/error';
 import axiosInstance from '@/app/interceptors/axiosInstance';
 import axios from 'axios';
 
 const loginUser = async (data: LoginData): Promise<LoginResponse> => {
-  console.log(IP_ADDRESS);
+  const IP_ADDRESS = process.env.EXPO_PUBLIC_IP_ADDRESS
   const url = `http://${IP_ADDRESS}:3000/auth/login`;
   console.log(url)
 

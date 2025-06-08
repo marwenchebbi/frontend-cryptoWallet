@@ -4,20 +4,21 @@ import "../global.css";
 import { useEffect, useState } from "react";
 import { isAuthenticated } from "./hooks/shared/useIsAuthenticated";
 import { StripeProvider } from "@stripe/stripe-react-native";
-import { PULISHABLE_KEY } from "./models/types";
+
 
 
 
 const queryClient = new QueryClient();
 
 
-
+const pubKey =  process.env.EXPO_PUBLIC_PUBLICHABLE_KEY || ''
 
 export default function RootLayout() {
   const [isAuth, setIsAuth] = useState<boolean | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
+      console.log(pubKey)
       const authenticated = await isAuthenticated();
       setIsAuth(authenticated);
     };
@@ -29,7 +30,7 @@ export default function RootLayout() {
   }
 
   return (
-    <StripeProvider publishableKey={PULISHABLE_KEY}>
+    <StripeProvider publishableKey={pubKey}>
     <QueryClientProvider client={queryClient}>
       <Stack screenOptions={{headerShown : false}}>
         {!isAuth && (
@@ -54,6 +55,7 @@ export default function RootLayout() {
             <Stack.Screen name="screens/payment.screen" options={{ headerShown: false }} />
             <Stack.Screen name="screens/SellTokensScreen" options={{ headerShown: false }} />
             <Stack.Screen name="screens/trade-token.screen" options={{ headerShown: false }} />
+            <Stack.Screen name="screens/reward.screen" options={{ headerShown: false }} />
           </>
         )}
 

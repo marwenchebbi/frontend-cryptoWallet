@@ -7,16 +7,20 @@ interface ButtonProps {
   onPress: () => void;
   width?: 'full' | 'auto';
   isLandscape: boolean;
+  className?:  string
 }
 
 const Button: React.FC<ButtonProps> = ({ 
   title, 
   onPress, 
   width = 'full', 
-  isLandscape 
+  isLandscape ,
+  className,
+  
+
 }) => {
   return (
-    <TouchableOpacity className='bg-purple-200'
+    <TouchableOpacity className={`${className? className :'bg-purple-200'}`}
       style={{
         borderRadius: 999,
         paddingVertical: isLandscape ? 6 : 10,

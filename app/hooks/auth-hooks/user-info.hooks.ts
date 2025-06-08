@@ -1,4 +1,4 @@
-import { IP_ADDRESS } from '@/app/models/types';
+
 import { UserInfo } from '@/app/models/user';
 import { useQuery } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';

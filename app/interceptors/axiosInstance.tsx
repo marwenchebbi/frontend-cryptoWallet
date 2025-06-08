@@ -1,13 +1,12 @@
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import * as SecureStore from 'expo-secure-store';
-import { IP_ADDRESS } from '@/app/models/types';
 
 // Interface for decoded token
 interface DecodedToken {
   exp: number;
 }
-
+const IP_ADDRESS = process.env.EXPO_PUBLIC_IP_ADDRESS
 // Track if a refresh is already in progress to prevent multiple simultaneous refresh attempts
 let isRefreshing = false;
 let refreshSubscribers: Array<(token: string) => void> = [];

@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 import { changePasswordSchema } from '../../validators/auth.validator';
 import { validateForm } from '../../validators/helpers';
-import { IP_ADDRESS } from '@/app/models/types';
+
 import { ChangePasswordData, ChangePasswordResponse } from '@/app/models/user';
 import { ErrorResponse } from '@/app/models/error';
 import axiosInstance from '@/app/interceptors/axiosInstance';

@@ -2,7 +2,6 @@ import { useMutation } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';
 import { profileSchema } from '../../validators/auth.validator';
 import { validateForm } from '../../validators/helpers';
-import { IP_ADDRESS } from '@/app/models/types';
 import { UpdateProfileData, UpdateProfileResponse } from '@/app/models/user';
 import axios from 'axios';
 import { ErrorResponse } from '@/app/models/error';

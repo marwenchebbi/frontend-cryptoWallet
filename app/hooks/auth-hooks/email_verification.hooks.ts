@@ -1,8 +1,9 @@
+
 // hooks/auth-hooks/useEmailVerification.ts
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import axios from 'axios';
-import { IP_ADDRESS } from '@/app/models/types';
+
+
 import axiosInstance from '@/app/interceptors/axiosInstance';
 
 interface VerifyEmailResponse {
@@ -12,6 +13,8 @@ interface VerifyEmailResponse {
 interface VerifyEmailData {
   token: string;
 }
+
+const IP_ADDRESS = process.env.EXPO_PUBLIC_IP_ADDRESS
 
 const verifyEmail = async (data: VerifyEmailData): Promise<VerifyEmailResponse> => {
   const response = await axiosInstance.get(`http://${IP_ADDRESS}:3000/auth/verify-email`, {
